@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { format } from 'date-fns';
-import { updateTask, deleteTask } from '../../services/taskService';
+import { updateTask, deleteTask, updateTaskStatus } from '../../services/taskService';
 import CommentList from '../comments/CommentList';
 import { useAuth } from '../../context/AuthContext';
 import './Tasks.css';
@@ -16,6 +16,7 @@ function TaskDetailModal({ task, onClose, onTaskUpdated }) {
   );
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [changingStatus, setChangingStatus] = useState(false);
   
   // Fetch project info for statuses and members
   const [project, setProject] = useState(null);
@@ -91,6 +92,18 @@ function TaskDetailModal({ task, onClose, onTaskUpdated }) {
     }
   };
   
+  const handleStatusChange = async (e) => {
+    try {
+      setChangingStatus(true);
+      await updateTaskStatus(task._id, e.target.value);
+      onTaskUpdated();
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to update status');
+    } finally {
+      setChangingStatus(false);
+    }
+  };
+
   const formatDate = (dateString) => {
     if (!dateString) return 'No due date';
     
@@ -112,7 +125,22 @@ function TaskDetailModal({ task, onClose, onTaskUpdated }) {
             <div className="task-meta-section">
               <div className="task-meta-item">
                 <span className="meta-label">Status:</span>
-                <span className="meta-value status-badge">{task.status}</span>
+                {isTaskAssignee() ? (
+                  <select
+                    value={task.status}
+                    onChange={handleStatusChange}
+                    disabled={changingStatus}
+                    className="status-select"
+                  >
+                    {task.project?.statuses?.map(statusOption => (
+                      <option key={statusOption} value={statusOption}>
+                        {statusOption}
+                      </option>
+                    ))}
+                  </select>  
+                ) : (
+                  <span className="meta-value status-badge">{task.status}</span>
+                )}
               </div>
               
               <div className="task-meta-item">

@@ -10,16 +10,18 @@ export const isAuthorizedForTask = (task, project, uid) => {
   const isProjectOwner = project.members.some(
     member => member.userId === uid && member.role === 'owner'
   );
-  
-  // Check if user is the task assignee
+
+  // Check if user is task assignee
   const isTaskAssignee = task.assignee && task.assignee.userId === uid;
-  
-  console.log({
-    taskAssigneeId: task.assignee?.userId,
-    currentUserId: uid,
-    isTaskAssignee,
-    isProjectOwner
-  });
-  
-  return isProjectOwner || isTaskAssignee;
+
+  // Check if user is project member
+  const isProjectMember = project.members.some(
+    member => member.userId === uid
+  );
+
+  // Allow project owners and assignees to do anything
+  if (isProjectOwner || isTaskAssignee) return true;
+
+  // Allow project members to view and update status
+  return isProjectMember;
 };

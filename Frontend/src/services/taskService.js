@@ -75,7 +75,7 @@ export const updateTask = async (taskId, taskData) => {
 export const updateTaskStatus = async (taskId, status) => {
   try {
     console.log(`Updating task ${taskId} status to: ${status}`);
-    const response = await axios.put(
+    const response = await axios.patch(
       `${API_URL}/tasks/${taskId}/status`,
       { status },
       getAuthConfig()
@@ -86,7 +86,6 @@ export const updateTaskStatus = async (taskId, status) => {
     console.error('Error updating task status:', error);
     if (error.response) {
       console.error('Server response:', error.response.data);
-      alert(`Failed to update task status: ${error.response.data.message}`);
     }
     throw error;
   }

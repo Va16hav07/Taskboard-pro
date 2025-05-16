@@ -277,18 +277,14 @@ export const updateTaskStatus = async (req, res) => {
       return res.status(404).json({ message: 'Project not found' });
     }
     
-    // Check authorization
+    // Check if user is authorized (project owner, task assignee, or project member)
     if (!isAuthorizedForTask(task, project, uid)) {
-      console.log('Authorization failed. Task details:', {
-        assignee: task.assignee,
-        projectMembers: project.members
-      });
-      
+      console.log('Authorization failed for user:', uid);
       return res.status(403).json({ 
-        message: 'Access denied. Only the task assignee or project owner can change task status.'
+        message: 'Access denied. Only project members can update task status.'
       });
     }
-    
+
     // Verify the status is valid for the project
     if (!project.statuses.includes(status)) {
       return res.status(400).json({ 
