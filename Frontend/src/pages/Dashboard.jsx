@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { getUserProjects } from '../services/projectService';
 import { testAuthentication, checkToken } from '../utils/authUtils';
+import AssignedTasks from '../components/dashboard/AssignedTasks';
 import './Pages.css';
 
 function Dashboard() {
@@ -59,6 +60,10 @@ function Dashboard() {
       )}
 
       <div className="dashboard-content">
+        <div className="section">
+          <AssignedTasks />
+        </div>
+
         <div className="section">
           <div className="section-header">
             <h2>Your Projects</h2>

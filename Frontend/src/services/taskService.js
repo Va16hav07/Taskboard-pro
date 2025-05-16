@@ -112,3 +112,16 @@ export const updateProjectStatuses = async (projectId, statuses) => {
     throw error;
   }
 };
+
+export const getUserAssignedTasks = async () => {
+  try {
+    const response = await axios.get(
+      `${API_URL}/tasks/user/assigned`,
+      getAuthConfig()
+    );
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching assigned tasks:', error);
+    throw error;
+  }
+};

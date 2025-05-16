@@ -1,5 +1,7 @@
 import express from 'express';
 import User from '../models/userModel.js';
+import Task from '../models/taskModel.js';
+import Badge from '../models/badgeModel.js';
 import { authenticateToken } from '../middleware/auth.js';
 
 const router = express.Router();
@@ -41,6 +43,41 @@ router.get('/me', authenticateToken, async (req, res) => {
   } catch (error) {
     console.error('Error fetching user:', error);
     res.status(500).json({ message: 'Error fetching user', error: error.message });
+  }
+});
+
+// Get user statistics
+router.get('/me/stats', authenticateToken, async (req, res) => {
+  try {
+    const { uid } = req.user;
+    
+    // Get tasks completed by user
+    const completedTasks = await Task.find({
+      'assignee.userId': uid,
+      status: 'Done'
+    }).countDocuments();
+    
+    // Get total badges earned
+    const totalBadges = await Badge.find({
+      userId: uid
+    }).countDocuments();
+    
+    // Get projects user is a member of
+    const user = await User.findOne({ uid });
+    
+    res.status(200).json({
+      tasksCompleted: completedTasks,
+      badgesEarned: totalBadges,
+      userInfo: {
+        name: user.name,
+        email: user.email,
+        photoURL: user.photoURL,
+        badges: user.badges || { total: 0, types: {} }
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching user stats:', error);
+    res.status(500).json({ message: 'Error fetching user statistics', error: error.message });
   }
 });
 

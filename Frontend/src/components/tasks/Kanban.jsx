@@ -4,6 +4,7 @@ import TaskCard from './TaskCard';
 import NewTaskModal from './NewTaskModal';
 import EditStatusesModal from './EditStatusesModal';
 import { useAuth } from '../../context/AuthContext';
+import { useSocket } from '../../context/SocketContext';
 import './Tasks.css';
 
 function Kanban({ project }) {
@@ -13,6 +14,7 @@ function Kanban({ project }) {
   const [showNewTaskModal, setShowNewTaskModal] = useState(false);
   const [showEditStatusesModal, setShowEditStatusesModal] = useState(false);
   const { currentUser } = useAuth();
+  const { socket, joinProject, leaveProject } = useSocket();
   
   const isProjectOwner = () => {
     return project.members.some(
@@ -36,7 +38,55 @@ function Kanban({ project }) {
   
   useEffect(() => {
     fetchTasks();
-  }, [project._id]);
+    
+    // Join the project socket room
+    joinProject(project._id);
+    
+    // Set up socket event listeners for real-time updates
+    if (socket) {
+      socket.on('task-created', (newTask) => {
+        if (newTask.projectId === project._id) {
+          setTasks(prevTasks => [...prevTasks, newTask]);
+        }
+      });
+      
+      socket.on('task-updated', (updatedTask) => {
+        if (updatedTask.projectId === project._id) {
+          setTasks(prevTasks => 
+            prevTasks.map(task => 
+              task._id === updatedTask._id ? updatedTask : task
+            )
+          );
+        }
+      });
+      
+      socket.on('task-deleted', ({ taskId, projectId }) => {
+        if (projectId === project._id) {
+          setTasks(prevTasks => 
+            prevTasks.filter(task => task._id !== taskId)
+          );
+        }
+      });
+      
+      socket.on('comment-added', ({ taskId, projectId }) => {
+        if (projectId === project._id) {
+          // Just trigger a refresh of the affected task
+          fetchTasks();
+        }
+      });
+    }
+    
+    // Clean up
+    return () => {
+      leaveProject(project._id);
+      if (socket) {
+        socket.off('task-created');
+        socket.off('task-updated');
+        socket.off('task-deleted');
+        socket.off('comment-added');
+      }
+    };
+  }, [project._id, socket]);
   
   const handleDragStart = (e, taskId) => {
     e.dataTransfer.setData('taskId', taskId);

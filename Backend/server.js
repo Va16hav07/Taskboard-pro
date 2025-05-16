@@ -3,13 +3,16 @@ import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 import cors from 'cors';
 import morgan from 'morgan';
+import http from 'http';
 import jwt from 'jsonwebtoken';
 import userRoutes from './routes/userRoutes.js';
 import projectRoutes from './routes/projectRoutes.js';
 import taskRoutes from './routes/taskRoutes.js';
 import automationRoutes from './routes/automationRoutes.js';
+import commentRoutes from './routes/commentRoutes.js';
 import { authenticateToken } from './middleware/auth.js';
 import { setupDueDateAutomations } from './services/automationService.js';
+import { initSocketServer } from './websocket/socketServer.js';
 
 // Load environment variables
 dotenv.config();
@@ -61,6 +64,7 @@ app.use('/api/users', userRoutes);
 app.use('/api/projects', projectRoutes);
 app.use('/api/tasks', taskRoutes);
 app.use('/api/automations', automationRoutes);
+app.use('/api/comments', commentRoutes);
 
 // Test authentication route
 app.get('/api/auth/test', authenticateToken, (req, res) => {
@@ -76,8 +80,14 @@ app.use((err, req, res, next) => {
   });
 });
 
+// Create HTTP server
+const server = http.createServer(app);
+
+// Initialize socket server
+initSocketServer(server);
+
 // Start server
-const server = app.listen(PORT, () => {
+server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
   
   // Set up the automation scheduler

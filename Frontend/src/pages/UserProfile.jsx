@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import NotificationList from '../components/notifications/NotificationList';
+import BadgeSummary from '../components/badges/BadgeSummary';
 import BadgeList from '../components/badges/BadgeList';
 import './Pages.css';
 
@@ -39,11 +40,18 @@ function UserProfile() {
         >
           Badges
         </button>
+        <button 
+          className={`tab-btn ${activeTab === 'badgeHistory' ? 'active' : ''}`}
+          onClick={() => setActiveTab('badgeHistory')}
+        >
+          Badge History
+        </button>
       </div>
 
       <div className="profile-content">
         {activeTab === 'notifications' && <NotificationList />}
-        {activeTab === 'badges' && <BadgeList />}
+        {activeTab === 'badges' && <BadgeSummary />}
+        {activeTab === 'badgeHistory' && <BadgeList />}
       </div>
     </div>
   );

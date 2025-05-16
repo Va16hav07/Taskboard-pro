@@ -194,6 +194,11 @@
   line-height: 1.5;
 }
 
+.task-comments-section {
+  border-top: 1px solid #e2e8f0;
+  padding: 16px 24px;
+}
+
 /* Status Management */
 .status-list {
   margin-bottom: 16px;

@@ -19,6 +19,34 @@ const userSchema = new mongoose.Schema({
     type: String,
     default: ''
   },
+  badges: {
+    total: {
+      type: Number,
+      default: 0
+    },
+    types: {
+      taskMaster: {
+        type: Number,
+        default: 0
+      },
+      problemSolver: {
+        type: Number,
+        default: 0
+      },
+      teamPlayer: {
+        type: Number,
+        default: 0
+      },
+      productivityStar: {
+        type: Number,
+        default: 0
+      },
+      fastCompleter: {
+        type: Number,
+        default: 0
+      }
+    }
+  },
   createdAt: {
     type: Date,
     default: Date.now

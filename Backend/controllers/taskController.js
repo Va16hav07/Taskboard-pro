@@ -2,6 +2,7 @@ import Task from '../models/taskModel.js';
 import Project from '../models/projectModel.js';
 import User from '../models/userModel.js';
 import { processTaskAutomations } from '../services/automationService.js';
+import { getIO } from '../websocket/socketServer.js';
 
 // Create a new task
 export const createTask = async (req, res) => {
@@ -56,6 +57,10 @@ export const createTask = async (req, res) => {
     });
     
     await task.save();
+    
+    // Emit real-time update via WebSocket
+    const io = getIO();
+    io.to(`project:${task.projectId}`).emit('task-created', task);
     
     res.status(201).json(task);
   } catch (error) {
@@ -201,6 +206,10 @@ export const updateTask = async (req, res) => {
     // Process automations
     await processTaskAutomations(task, previousTask);
     
+    // Emit real-time update via WebSocket
+    const io = getIO();
+    io.to(`project:${task.projectId}`).emit('task-updated', task);
+    
     res.status(200).json(task);
   } catch (error) {
     console.error('Error updating task:', error);
@@ -251,6 +260,10 @@ export const updateTaskStatus = async (req, res) => {
     // Process automations
     await processTaskAutomations(task, previousTask);
     
+    // Emit real-time update via WebSocket
+    const io = getIO();
+    io.to(`project:${task.projectId}`).emit('task-updated', task);
+    
     res.status(200).json(task);
   } catch (error) {
     console.error('Error updating task status:', error);
@@ -282,6 +295,10 @@ export const deleteTask = async (req, res) => {
     }
     
     await Task.findByIdAndDelete(taskId);
+    
+    // Emit real-time update via WebSocket
+    const io = getIO();
+    io.to(`project:${task.projectId}`).emit('task-deleted', { taskId, projectId: task.projectId });
     
     res.status(200).json({ message: 'Task deleted successfully' });
   } catch (error) {
@@ -343,5 +360,30 @@ export const updateProjectStatuses = async (req, res) => {
   } catch (error) {
     console.error('Error updating project statuses:', error);
     res.status(500).json({ message: 'Error updating project statuses', error: error.message });
+  }
+};
+
+// Get tasks assigned to a user
+export const getUserTasks = async (req, res) => {
+  try {
+    const { uid } = req.user;
+    
+    const tasks = await Task.find({
+      'assignee.userId': uid
+    }).populate({
+      path: 'projectId',
+      select: 'title members'
+    });
+    
+    // Filter out tasks where the user might no longer be a member of the project
+    const filteredTasks = tasks.filter(task => {
+      if (!task.projectId) return false;
+      return task.projectId.members.some(member => member.userId === uid);
+    });
+    
+    res.status(200).json(filteredTasks);
+  } catch (error) {
+    console.error('Error fetching user tasks:', error);
+    res.status(500).json({ message: 'Error fetching user tasks', error: error.message });
   }
 };

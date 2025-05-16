@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { format } from 'date-fns';
 import { updateTask, deleteTask } from '../../services/taskService';
+import CommentList from '../comments/CommentList';
 import './Tasks.css';
 
 function TaskDetailModal({ task, onClose, onTaskUpdated }) {
@@ -103,6 +104,11 @@ function TaskDetailModal({ task, onClose, onTaskUpdated }) {
               <h3>Description</h3>
               <p>{task.description || 'No description provided.'}</p>
             </div>
+          </div>
+          
+          {/* Add comments section */}
+          <div className="task-comments-section">
+            <CommentList taskId={task._id} projectId={task.projectId} />
           </div>
           
           <div className="modal-actions">

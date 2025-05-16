@@ -3,6 +3,7 @@ import Task from '../models/taskModel.js';
 import Project from '../models/projectModel.js';
 import Badge from '../models/badgeModel.js';
 import Notification from '../models/notificationModel.js';
+import User from '../models/userModel.js';
 import { scheduleJob } from 'node-schedule';
 
 // Process the automations for a task
@@ -86,15 +87,31 @@ const assignBadge = async (task, automation) => {
     if (!task.assignee || !task.assignee.userId) return;
     
     // Create the badge
+    const badgeName = automation.action.badgeName || 'Task Completed';
+    
     const badge = new Badge({
       userId: task.assignee.userId,
-      name: automation.action.badgeName || 'Task Completed',
+      name: badgeName,
       description: `Awarded for completing task: ${task.title}`,
       projectId: task.projectId,
       taskId: task._id
     });
     
     await badge.save();
+    
+    // Update user badge counters
+    const badgeType = getBadgeType(badgeName);
+    if (badgeType) {
+      await User.findOneAndUpdate(
+        { uid: task.assignee.userId },
+        { 
+          $inc: {
+            'badges.total': 1,
+            [`badges.types.${badgeType}`]: 1
+          }
+        }
+      );
+    }
     
     // Create a notification for the badge
     const notification = new Notification({
@@ -111,6 +128,20 @@ const assignBadge = async (task, automation) => {
   } catch (error) {
     console.error('Error assigning badge:', error);
   }
+};
+
+// Helper function to map badge names to badge types
+const getBadgeType = (badgeName) => {
+  const lowerName = badgeName.toLowerCase();
+  
+  if (lowerName.includes('task master')) return 'taskMaster';
+  if (lowerName.includes('problem solver')) return 'problemSolver';
+  if (lowerName.includes('team player')) return 'teamPlayer';
+  if (lowerName.includes('productivity')) return 'productivityStar';
+  if (lowerName.includes('fast') || lowerName.includes('quick')) return 'fastCompleter';
+  
+  // Default to task master for generic badges
+  return 'taskMaster';
 };
 
 // Move a task to a different status
