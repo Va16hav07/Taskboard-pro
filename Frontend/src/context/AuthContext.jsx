@@ -2,7 +2,7 @@ import { createContext, useContext, useState, useEffect } from 'react';
 import { auth, googleProvider } from '../config/firebase';
 import { 
   signInWithPopup,
-  signOut,
+  signOut as firebaseSignOut,
   onAuthStateChanged
 } from 'firebase/auth';
 import axios from 'axios';
@@ -66,10 +66,11 @@ export const AuthProvider = ({ children }) => {
   };
 
   // Sign out
-  const logOut = () => {
+  const signOut = async () => {
     localStorage.removeItem('authToken');
     setToken(null);
-    return signOut(auth);
+    setCurrentUser(null);
+    return firebaseSignOut(auth);
   };
 
   // Monitor authentication state
@@ -111,7 +112,7 @@ export const AuthProvider = ({ children }) => {
     currentUser,
     token,
     signInWithGoogle,
-    logOut,
+    signOut,
     error
   };
 
