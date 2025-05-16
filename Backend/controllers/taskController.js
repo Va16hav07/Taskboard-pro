@@ -17,10 +17,10 @@ export const createTask = async (req, res) => {
       return res.status(404).json({ message: 'Project not found' });
     }
     
-    // Verify that user is a member of the project
-    const isMember = project.members.some(member => member.userId === uid);
-    if (!isMember) {
-      return res.status(403).json({ message: 'Access denied. You are not a member of this project.' });
+    // Verify that user is a project owner
+    const userMember = project.members.find(member => member.userId === uid);
+    if (!userMember || userMember.role !== 'owner') {
+      return res.status(403).json({ message: 'Access denied. Only project owners can create tasks.' });
     }
     
     // Verify the status is valid for the project
@@ -170,10 +170,10 @@ export const updateTask = async (req, res) => {
       return res.status(404).json({ message: 'Project not found' });
     }
     
-    // Verify that user is a member of the project
-    const isMember = project.members.some(member => member.userId === uid);
-    if (!isMember) {
-      return res.status(403).json({ message: 'Access denied. You are not a member of this project.' });
+    // Only project owners can update task details
+    const userMember = project.members.find(member => member.userId === uid);
+    if (!userMember || userMember.role !== 'owner') {
+      return res.status(403).json({ message: 'Access denied. Only project owners can update task details.' });
     }
     
     // Verify the status is valid for the project if provided
@@ -295,10 +295,15 @@ export const updateTaskStatus = async (req, res) => {
       return res.status(404).json({ message: 'Project not found' });
     }
     
-    // Verify that user is a member of the project
-    const isMember = project.members.some(member => member.userId === uid);
-    if (!isMember) {
-      return res.status(403).json({ message: 'Access denied. You are not a member of this project.' });
+    // Check if user is the task assignee or a project owner
+    const userMember = project.members.find(member => member.userId === uid);
+    const isProjectOwner = userMember && userMember.role === 'owner';
+    const isTaskAssignee = task.assignee && task.assignee.userId === uid;
+    
+    if (!isProjectOwner && !isTaskAssignee) {
+      return res.status(403).json({ 
+        message: 'Access denied. Only the task assignee or project owner can change task status.' 
+      });
     }
     
     // Verify the status is valid for the project
@@ -348,10 +353,10 @@ export const deleteTask = async (req, res) => {
       return res.status(404).json({ message: 'Project not found' });
     }
     
-    // Verify that user is a member of the project
-    const isMember = project.members.some(member => member.userId === uid);
-    if (!isMember) {
-      return res.status(403).json({ message: 'Access denied. You are not a member of this project.' });
+    // Only project owners can delete tasks
+    const userMember = project.members.find(member => member.userId === uid);
+    if (!userMember || userMember.role !== 'owner') {
+      return res.status(403).json({ message: 'Access denied. Only project owners can delete tasks.' });
     }
     
     await Task.findByIdAndDelete(taskId);

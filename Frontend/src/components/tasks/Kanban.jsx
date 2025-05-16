@@ -3,16 +3,18 @@ import { getProjectTasks, updateTaskStatus } from '../../services/taskService';
 import TaskCard from './TaskCard';
 import NewTaskModal from './NewTaskModal';
 import EditStatusesModal from './EditStatusesModal';
+import TaskDetailModal from './TaskDetailModal';
 import { useAuth } from '../../context/AuthContext';
 import { useSocket } from '../../context/SocketContext';
 import './Tasks.css';
 
-function Kanban({ project, onTaskSelected }) {
+function Kanban({ project, isOwner }) {
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [showNewTaskModal, setShowNewTaskModal] = useState(false);
   const [showEditStatusesModal, setShowEditStatusesModal] = useState(false);
+  const [selectedTask, setSelectedTask] = useState(null);
   const { currentUser } = useAuth();
   const { socket, joinProject, leaveProject } = useSocket();
   
@@ -119,9 +121,21 @@ function Kanban({ project, onTaskSelected }) {
   };
 
   const handleTaskClick = (task) => {
-    if (onTaskSelected) {
-      onTaskSelected(task);
-    }
+    // Ensure the task has project information
+    const taskWithProject = {
+      ...task,
+      project: project
+    };
+    setSelectedTask(taskWithProject);
+  };
+  
+  const handleCloseTaskDetail = () => {
+    setSelectedTask(null);
+  };
+  
+  const handleTaskUpdated = () => {
+    fetchTasks();
+    setSelectedTask(null);
   };
   
   if (loading) {
@@ -139,20 +153,22 @@ function Kanban({ project, onTaskSelected }) {
       <div className="kanban-header">
         <h2>Tasks</h2>
         <div className="kanban-actions">
-          {isProjectOwner() && (
-            <button 
-              className="edit-statuses-btn"
-              onClick={() => setShowEditStatusesModal(true)}
-            >
-              Edit Statuses
-            </button>
+          {isOwner && (
+            <>
+              <button 
+                className="edit-statuses-btn"
+                onClick={() => setShowEditStatusesModal(true)}
+              >
+                Edit Statuses
+              </button>
+              <button 
+                className="new-task-btn"
+                onClick={() => setShowNewTaskModal(true)}
+              >
+                + New Task
+              </button>
+            </>
           )}
-          <button 
-            className="new-task-btn"
-            onClick={() => setShowNewTaskModal(true)}
-          >
-            + New Task
-          </button>
         </div>
       </div>
       
@@ -178,7 +194,7 @@ function Kanban({ project, onTaskSelected }) {
                     task={task}
                     onTaskUpdated={fetchTasks}
                     onDragStart={handleDragStart}
-                    onClick={() => handleTaskClick(task)}
+                    onClick={handleTaskClick}
                   />
                 ))
               ) : (
@@ -189,7 +205,7 @@ function Kanban({ project, onTaskSelected }) {
         ))}
       </div>
       
-      {showNewTaskModal && (
+      {isOwner && showNewTaskModal && (
         <NewTaskModal 
           project={project}
           onClose={() => setShowNewTaskModal(false)}
@@ -197,11 +213,19 @@ function Kanban({ project, onTaskSelected }) {
         />
       )}
       
-      {showEditStatusesModal && (
+      {isOwner && showEditStatusesModal && (
         <EditStatusesModal
           project={project}
           onClose={() => setShowEditStatusesModal(false)}
           onStatusesUpdated={handleStatusesUpdated}
+        />
+      )}
+      
+      {selectedTask && (
+        <TaskDetailModal
+          task={selectedTask}
+          onClose={handleCloseTaskDetail}
+          onTaskUpdated={handleTaskUpdated}
         />
       )}
     </div>

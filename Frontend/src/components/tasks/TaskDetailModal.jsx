@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { format } from 'date-fns';
 import { updateTask, deleteTask } from '../../services/taskService';
 import CommentList from '../comments/CommentList';
+import { useAuth } from '../../context/AuthContext';
 import './Tasks.css';
 
 function TaskDetailModal({ task, onClose, onTaskUpdated }) {
@@ -22,6 +23,25 @@ function TaskDetailModal({ task, onClose, onTaskUpdated }) {
   
   // In a real implementation, we would fetch the project here
   // For now, we'll assume it's passed as a prop
+  
+  const { currentUser } = useAuth();
+  
+  // Check if current user is project owner
+  const isProjectOwner = () => {
+    return task.project?.members?.some(
+      member => member.userId === currentUser?.uid && member.role === 'owner'
+    );
+  };
+  
+  // Check if current user is task assignee
+  const isTaskAssignee = () => {
+    return task.assignee && task.assignee.userId === currentUser?.uid;
+  };
+  
+  // Check if user can change task status
+  const canChangeTaskStatus = () => {
+    return isProjectOwner() || isTaskAssignee();
+  };
   
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -111,26 +131,29 @@ function TaskDetailModal({ task, onClose, onTaskUpdated }) {
             <CommentList taskId={task._id} projectId={task.projectId} />
           </div>
           
-          <div className="modal-actions">
-            <button 
-              className="delete-btn" 
-              onClick={handleDelete}
-            >
-              Delete
-            </button>
-            <button 
-              className="edit-btn" 
-              onClick={() => setIsEditing(true)}
-            >
-              Edit
-            </button>
-          </div>
+          {isProjectOwner() && (
+            <div className="modal-actions">
+              <button 
+                className="delete-btn" 
+                onClick={handleDelete}
+              >
+                Delete
+              </button>
+              <button 
+                className="edit-btn" 
+                onClick={() => setIsEditing(true)}
+              >
+                Edit
+              </button>
+            </div>
+          )}
         </div>
       </div>
     );
   }
   
-  // Edit Mode
+  // Only project owners can access edit mode
+  // This part should only be reachable by owners due to the condition above
   return (
     <div className="modal-overlay">
       <div className="modal-content">

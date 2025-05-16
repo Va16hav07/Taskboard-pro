@@ -23,7 +23,7 @@ const ProtectedRoute = ({ children }) => {
 
 function AppContent() {
   return (
-    <Router>
+    <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <Header />
       <main className="app-content">
         <Routes>

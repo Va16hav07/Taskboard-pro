@@ -1,10 +1,21 @@
 import { useState } from 'react';
 import { formatDistanceToNow } from 'date-fns';
 import TaskDetailModal from './TaskDetailModal';
+import { useAuth } from '../../context/AuthContext';
 import './Tasks.css';
 
 function TaskCard({ task, onTaskUpdated, onDragStart, onClick }) {
   const [showDetailModal, setShowDetailModal] = useState(false);
+  const { currentUser } = useAuth();
+  
+  // Check if current user can move this task (owner or assignee)
+  const canMoveTask = () => {
+    const isOwner = task.project?.members?.some(
+      member => member.userId === currentUser?.uid && member.role === 'owner'
+    );
+    const isAssignee = task.assignee && task.assignee.userId === currentUser?.uid;
+    return isOwner || isAssignee;
+  };
   
   const formatDate = (dateString) => {
     if (!dateString) return null;
@@ -18,7 +29,7 @@ function TaskCard({ task, onTaskUpdated, onDragStart, onClick }) {
     if (onTaskUpdated) onTaskUpdated();
   };
   
-  const handleClick = () => {
+  const handleClick = (e) => {
     if (onClick) {
       onClick(task);
     } else {
@@ -26,12 +37,20 @@ function TaskCard({ task, onTaskUpdated, onDragStart, onClick }) {
     }
   };
   
+  const handleDragStart = (e) => {
+    if (canMoveTask()) {
+      onDragStart(e, task._id);
+    } else {
+      e.preventDefault();
+    }
+  };
+  
   return (
     <>
       <div 
-        className="task-card"
-        draggable
-        onDragStart={(e) => onDragStart(e, task._id)}
+        className={`task-card ${canMoveTask() ? 'draggable' : ''}`}
+        draggable={canMoveTask()}
+        onDragStart={handleDragStart}
         onClick={handleClick}
       >
         <h4 className="task-title">{task.title}</h4>

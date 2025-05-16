@@ -173,7 +173,7 @@ function AutomationList({ project, isOwner }) {
         </div>
       )}
 
-      {showNewAutomationForm && (
+      {isOwner && showNewAutomationForm && (
         <AutomationForm
           project={project}
           onClose={() => setShowNewAutomationForm(false)}
@@ -181,7 +181,7 @@ function AutomationList({ project, isOwner }) {
         />
       )}
 
-      {editingAutomation && (
+      {isOwner && editingAutomation && (
         <AutomationForm
           project={project}
           automation={editingAutomation}

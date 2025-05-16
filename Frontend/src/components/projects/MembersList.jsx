@@ -6,6 +6,10 @@ function MembersList({ members, projectId, onMemberRemoved, isOwner }) {
   const { currentUser } = useAuth();
   
   const handleRemoveMember = async (userId) => {
+    if (!isOwner) {
+      return; // Only owners can remove members
+    }
+    
     if (window.confirm('Are you sure you want to remove this member?')) {
       try {
         await removeUserFromProject(projectId, userId);

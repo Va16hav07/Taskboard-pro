@@ -95,6 +95,13 @@ function ProjectDetail() {
       member.userId === project.createdBy && member.role === 'owner'
     );
   };
+
+  const isProjectOwner = () => {
+    if (!project) return false;
+    return project.members.some(member => 
+      member.userId === currentUser?.uid && member.role === 'owner'
+    );
+  };
   
   const handleMemberInvited = () => {
     setShowInviteModal(false);
@@ -159,9 +166,9 @@ function ProjectDetail() {
           </div>
         ) : (
           <div className="project-info">
-            <h1>{project.title}</h1>
-            <p className="project-description">{project.description}</p>
-            {isOwner() && (
+            <h1>{project?.title}</h1>
+            <p className="project-description">{project?.description}</p>
+            {isProjectOwner() && (
               <div className="project-actions">
                 <button 
                   className="edit-btn" 
@@ -184,7 +191,7 @@ function ProjectDetail() {
       <div className="project-members-section">
         <div className="section-header">
           <h2>Project Members</h2>
-          {isOwner() && (
+          {isProjectOwner() && (
             <button 
               className="invite-btn" 
               onClick={() => setShowInviteModal(true)}
@@ -194,10 +201,10 @@ function ProjectDetail() {
           )}
         </div>
         <MembersList 
-          members={project.members} 
+          members={project?.members || []} 
           projectId={projectId} 
           onMemberRemoved={fetchProject} 
-          isOwner={isOwner()}
+          isOwner={isProjectOwner()}
         />
       </div>
       
@@ -212,13 +219,19 @@ function ProjectDetail() {
       {/* Add Kanban board below the members section */}
       {project && (
         <div className="project-tasks-section">
-          <Kanban project={project} onTaskSelected={setSelectedTask} />
+          <Kanban 
+            project={project} 
+            isOwner={isProjectOwner()}
+          />
         </div>
       )}
       
-      {project && (
+      {project && isProjectOwner() && (
         <div className="project-automations-section">
-          <AutomationList project={project} isOwner={isOwner()} />
+          <AutomationList 
+            project={project} 
+            isOwner={isProjectOwner()} 
+          />
         </div>
       )}
       

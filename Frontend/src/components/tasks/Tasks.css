@@ -104,9 +104,18 @@
   transition: transform 0.2s, box-shadow 0.2s;
 }
 
-.task-card:hover {
+.task-card.draggable {
+  cursor: grab;
+  border-left: 3px solid #2563eb;
+}
+
+.task-card.draggable:hover {
   transform: translateY(-2px);
   box-shadow: 0 3px 6px rgba(0, 0, 0, 0.15);
+}
+
+.task-card:not(.draggable):hover {
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.12);
 }
 
 .task-title {
