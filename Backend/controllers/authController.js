@@ -9,13 +9,11 @@ export const generateToken = async (req, res) => {
       return res.status(400).json({ message: 'UID and email are required' });
     }
     
-    console.log(`Generating token for user: ${email} (${uid})`);
-    
     // Save or update user in the database
     try {
       // Use upsert operation for atomic update or create
-      const result = await User.findOneAndUpdate(
-        { uid }, // find by uid
+      await User.findOneAndUpdate(
+        { uid },
         { 
           uid,
           email,
@@ -24,17 +22,13 @@ export const generateToken = async (req, res) => {
           updatedAt: Date.now()
         },
         { 
-          upsert: true, // create if doesn't exist
-          new: true, // return the updated/created document
-          runValidators: true // run validators on update
+          upsert: true,
+          new: true,
+          runValidators: true
         }
       );
-      
-      console.log(`User ${result.isNew ? 'created' : 'updated'}: ${email}`);
-      
     } catch (dbError) {
       console.error('Database error when saving user:', dbError);
-      // Continue to generate token even if save fails
     }
     
     // Generate JWT token

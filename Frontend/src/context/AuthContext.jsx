@@ -79,31 +79,22 @@ export const AuthProvider = ({ children }) => {
       
       if (user) {
         try {
-          console.log('User authenticated:', user.email);
-          // Force token refresh to ensure we have the latest
-          const firebaseToken = await user.getIdToken(true);
+          const firebaseToken = await user.getIdToken();
           
-          // Save user data to MongoDB via our backend API
-          console.log('Sending user data to backend...');
           const response = await axios.post(`${API_URL}/auth/token`, {
             uid: user.uid,
             email: user.email,
-            name: user.displayName || user.email.split('@')[0],
-            photoURL: user.photoURL || ''
+            name: user.displayName,
+            photoURL: user.photoURL
           });
           
           const backendToken = response.data.token;
-          console.log('Token received from backend');
-          
-          // Store the token
           localStorage.setItem('authToken', backendToken);
           setToken(backendToken);
-          setError(null);
         } catch (err) {
-          console.error("Error during authentication:", err);
-          setError(err.message);
-          // Keep the user authenticated even if backend token fails
-          // This is a fallback to allow the app to function
+          console.error("Error getting token:", err);
+          localStorage.removeItem('authToken');
+          setToken(null);
         }
       } else {
         localStorage.removeItem('authToken');
