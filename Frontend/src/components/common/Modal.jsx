@@ -60,6 +60,8 @@ function Modal({
     <div 
       className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in"
       onClick={handleOverlayClick}
+      aria-modal="true"
+      role="dialog"
     >
       <div 
         ref={modalRef}
@@ -68,15 +70,17 @@ function Modal({
       >
         {/* Modal Header */}
         <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between sticky top-0 bg-white dark:bg-gray-800 z-10">
-          {title && <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-100 pr-8">{title}</h2>}
+          {title && <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-100">{title}</h2>}
           {!hideCloseButton && (
             <button 
-              className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 focus:outline-none focus:ring-2 focus:ring-primary-500 rounded-full p-1 ml-auto"
+              className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 focus:outline-none focus:ring-2 focus:ring-primary-500 rounded-full p-1"
               aria-label="Close"
               onClick={onClose}
               type="button"
             >
-              <XMarkIcon className="w-6 h-6" />
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
             </button>
           )}
         </div>
