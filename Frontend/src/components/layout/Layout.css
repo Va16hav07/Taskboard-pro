@@ -13,8 +13,12 @@
 .logo a {
   font-size: 1.4rem;
   font-weight: 700;
-  color: #2563eb;
+  color: #7c3aed; /* Changed to purple-600 */
   text-decoration: none;
+  background: linear-gradient(to right, #7c3aed, #ffffff);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
 .nav-links {
@@ -29,7 +33,7 @@
 }
 
 .nav-links a:hover {
-  color: #2563eb;
+  color: #7c3aed; /* Changed to purple-600 */
 }
 
 .user-section {
@@ -67,19 +71,21 @@
 }
 
 .logout-btn:hover {
-  background-color: rgba(220, 38, 38, 0.1);
+  background-color: rgba(124, 58, 237, 0.1); /* Changed to purple-600 with opacity */
 }
 
 .login-btn {
-  background-color: #ffffff;
+  background: linear-gradient(to right, #7c3aed, #fcfcfc); /* Purple to indigo gradient */
   color: white;
   padding: 0.5rem 1.2rem;
-  border-radius: 4px;
+  border-radius: 999px; /* Rounded full */
   text-decoration: none;
   font-weight: 500;
-  transition: background-color 0.2s;
+  transition: all 0.2s;
+  box-shadow: 0 2px 4px rgba(79, 70, 229, 0.2);
 }
 
 .login-btn:hover {
-  background-color: #ffffff;
+  background: linear-gradient(to right, #6d28d9, #f0f0f0); /* Slightly darker gradient on hover */
+  box-shadow: 0 4px 6px rgba(79, 70, 229, 0.3);
 }
