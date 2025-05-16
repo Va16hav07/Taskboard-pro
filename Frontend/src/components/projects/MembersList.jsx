@@ -5,17 +5,26 @@ import './Projects.css';
 function MembersList({ members, projectId, onMemberRemoved, isOwner }) {
   const { currentUser } = useAuth();
   
-  const handleRemoveMember = async (userId) => {
+  const handleRemoveMember = async (member) => {
     if (!isOwner) {
       return; // Only owners can remove members
     }
     
-    if (window.confirm('Are you sure you want to remove this member?')) {
+    // Cannot remove yourself as an owner
+    if (member.email === currentUser.email) {
+      alert('Cannot remove yourself as project owner');
+      return;
+    }
+    
+    if (window.confirm(`Are you sure you want to remove ${member.email} from this project?`)) {
       try {
-        await removeUserFromProject(projectId, userId);
+        // Use either userId or email to identify the member
+        const memberIdentifier = member.userId || member.email;
+        await removeUserFromProject(projectId, memberIdentifier);
         onMemberRemoved();
       } catch (err) {
         console.error('Failed to remove member:', err);
+        alert('Failed to remove member. Please try again.');
       }
     }
   };
@@ -29,10 +38,10 @@ function MembersList({ members, projectId, onMemberRemoved, isOwner }) {
             <span className={`member-role ${member.role}`}>{member.role}</span>
             {member.userId === null && <span className="pending-tag">Pending</span>}
           </div>
-          {isOwner && currentUser?.email !== member.email && (
+          {isOwner && member.email !== currentUser?.email && (
             <button 
               className="remove-member-btn" 
-              onClick={() => handleRemoveMember(member.userId)}
+              onClick={() => handleRemoveMember(member)}
             >
               Remove
             </button>

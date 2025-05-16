@@ -89,12 +89,12 @@ export const inviteUserToProject = async (projectId, email) => {
 export const removeUserFromProject = async (projectId, userId) => {
   try {
     const response = await axios.delete(
-      `${API_URL}/projects/${projectId}/members/${userId}`, 
+      `${API_URL}/projects/${projectId}/members/${userId}`,
       getAuthConfig()
     );
     return response.data;
   } catch (error) {
-    console.error('Error removing user:', error);
+    console.error('Error removing user from project:', error);
     throw error;
   }
 };

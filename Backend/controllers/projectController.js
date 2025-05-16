@@ -206,7 +206,15 @@ export const removeUserFromProject = async (req, res) => {
     }
     
     // Remove user from project members
-    project.members = project.members.filter(member => member.userId !== userId);
+    const memberToRemove = project.members.find(member => member.userId === userId || member.email === userId);
+    
+    if (!memberToRemove) {
+      return res.status(404).json({ message: 'Member not found in project' });
+    }
+    
+    project.members = project.members.filter(member => 
+      member.userId !== userId && member.email !== userId
+    );
     
     await project.save();
     
