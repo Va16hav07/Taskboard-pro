@@ -593,3 +593,128 @@
   gap: 12px;
   margin-top: 12px;
 }
+
+/* Add these styles to your existing Projects.css file */
+
+.status-manager {
+  background-color: white;
+  border-radius: 8px;
+  padding: 20px;
+  margin-top: 20px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.status-manager h3 {
+  font-size: 1.1rem;
+  margin-bottom: 16px;
+  color: #1e293b;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.status-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.status-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 14px;
+  background-color: #f8fafc;
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
+}
+
+.status-name {
+  font-weight: 500;
+  color: #334155;
+}
+
+.delete-status-btn {
+  background: none;
+  border: none;
+  color: #ef4444;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.delete-status-btn:hover {
+  background-color: #fee2e2;
+}
+
+.delete-status-btn:disabled {
+  color: #cbd5e1;
+  cursor: not-allowed;
+  background-color: transparent;
+}
+
+.add-status-form {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.add-status-form input {
+  flex: 1;
+  padding: 10px 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  font-size: 0.95rem;
+}
+
+.add-status-form input:focus {
+  border-color: #2563eb;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
+}
+
+.add-status-form input:disabled {
+  background-color: #f1f5f9;
+  cursor: not-allowed;
+}
+
+.add-status-btn {
+  background-color: #2563eb;
+  color: white;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.add-status-btn:hover {
+  background-color: #1d4ed8;
+}
+
+.add-status-btn:disabled {
+  background-color: #93c5fd;
+  cursor: not-allowed;
+}
+
+.status-limit-warning {
+  background-color: #fff7ed;
+  color: #c2410c;
+  padding: 10px 14px;
+  border-radius: 6px;
+  margin-bottom: 16px;
+  font-size: 0.9rem;
+  border: 1px solid #ffedd5;
+}
+
+.status-actions {
+  display: flex;
+  justify-content: flex-end;
+}

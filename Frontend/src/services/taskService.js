@@ -118,6 +118,20 @@ export const updateProjectStatuses = async (projectId, statuses) => {
   }
 };
 
+// Delete a specific project status
+export const deleteProjectStatus = async (projectId, status) => {
+  try {
+    const response = await axios.delete(
+      `${API_URL}/tasks/project/${projectId}/statuses/${encodeURIComponent(status)}`,
+      getAuthConfig()
+    );
+    return response.data;
+  } catch (error) {
+    console.error('Error deleting project status:', error);
+    throw error;
+  }
+};
+
 export const getUserAssignedTasks = async () => {
   try {
     const response = await axios.get(

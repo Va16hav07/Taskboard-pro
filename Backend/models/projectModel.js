@@ -36,7 +36,13 @@ const projectSchema = new mongoose.Schema({
   }],
   statuses: {
     type: [String],
-    default: ['To Do', 'In Progress', 'Done']
+    default: ['To Do', 'In Progress', 'Done'],
+    validate: [
+      function(val) {
+        return val.length <= 10; 
+      }, 
+      'Maximum of 10 statuses are allowed per project.'
+    ]
   },
   createdAt: {
     type: Date,

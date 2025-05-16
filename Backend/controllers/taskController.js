@@ -375,6 +375,12 @@ export const updateProjectStatuses = async (req, res) => {
       return res.status(400).json({ message: 'Statuses must be a non-empty array of strings.' });
     }
     
+    if (statuses.length > 10) {
+      return res.status(400).json({ 
+        message: 'Maximum of 10 statuses are allowed per project.'
+      });
+    }
+
     // Make sure all tasks with statuses not in the new list are moved to a default status
     const defaultStatus = statuses[0];
     const tasksToUpdate = await Task.find({
@@ -405,6 +411,60 @@ export const updateProjectStatuses = async (req, res) => {
   } catch (error) {
     console.error('Error updating project statuses:', error);
     res.status(500).json({ message: 'Error updating project statuses', error: error.message });
+  }
+};
+
+// Delete a specific project status
+export const deleteProjectStatus = async (req, res) => {
+  try {
+    const { projectId, status } = req.params;
+    const { uid } = req.user;
+    
+    const project = await Project.findById(projectId);
+    if (!project) {
+      return res.status(404).json({ message: 'Project not found' });
+    }
+    
+    // Verify that user has owner role in project
+    const userMember = project.members.find(member => member.userId === uid);
+    if (!userMember || userMember.role !== 'owner') {
+      return res.status(403).json({ message: 'Access denied. Only project owner can delete statuses.' });
+    }
+    
+    // Check if the status exists in the project
+    if (!project.statuses.includes(status)) {
+      return res.status(404).json({ message: 'Status not found in project' });
+    }
+    
+    // Ensure we don't delete the last status
+    if (project.statuses.length <= 1) {
+      return res.status(400).json({ message: 'Cannot delete the last status. Projects must have at least one status.' });
+    }
+    
+    // Choose a default status (the first available that's not the one being deleted)
+    const defaultStatus = project.statuses.find(s => s !== status);
+    
+    // Move all tasks with the deleted status to the default status
+    await Task.updateMany(
+      { 
+        projectId,
+        status: status
+      },
+      { status: defaultStatus }
+    );
+    
+    // Remove the status from the project
+    project.statuses = project.statuses.filter(s => s !== status);
+    await project.save();
+    
+    res.status(200).json({ 
+      message: 'Status deleted successfully', 
+      project,
+      newDefaultStatus: defaultStatus
+    });
+  } catch (error) {
+    console.error('Error deleting project status:', error);
+    res.status(500).json({ message: 'Error deleting project status', error: error.message });
   }
 };
 
