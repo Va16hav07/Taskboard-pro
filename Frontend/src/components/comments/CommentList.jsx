@@ -5,7 +5,6 @@ import { getTaskComments } from '../../services/commentService';
 import CommentItem from './CommentItem';
 import CommentForm from './CommentForm';
 import Toggle from '../common/Toggle';
-import './Comments.css';
 
 function CommentList({ taskId, projectId }) {
   const [comments, setComments] = useState([]);
@@ -63,41 +62,63 @@ function CommentList({ taskId, projectId }) {
     setComments(comments.filter(comment => comment._id !== commentId));
   };
 
-  if (loading && comments.length === 0) {
-    return <div className="comment-loading">Loading comments...</div>;
-  }
-
   return (
-    <div className="comments-container">
-      <div className="comments-header">
-        <h3>Comments <span className="comments-counter">{comments.length}</span></h3>
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">
+          Comments
+          <span className="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">
+            {comments.length}
+          </span>
+        </h3>
+        
         <Toggle 
           checked={showRealTime}
           onChange={(e) => setShowRealTime(e.target.checked)}
-          label="Real-time updates"
-          id="comments-realtime-toggle"
+          label="Real-time"
+          labelPosition="left"
         />
       </div>
       
-      {error && <div className="comment-error">{error}</div>}
+      {error && (
+        <div className="bg-danger-50 border-l-4 border-danger-500 p-4 dark:bg-danger-900/30">
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <ExclamationCircleIcon className="h-5 w-5 text-danger-500" />
+            </div>
+            <div className="ml-3">
+              <p className="text-sm text-danger-700 dark:text-danger-200">{error}</p>
+            </div>
+          </div>
+        </div>
+      )}
       
-      <div className="comment-list">
-        {comments.length > 0 ? (
-          comments.map(comment => (
-            <CommentItem
-              key={comment._id}
-              comment={comment}
-              currentUserId={currentUser?.uid}
-              onDeleted={handleCommentDeleted}
-              projectId={projectId}
-            />
-          ))
-        ) : (
-          <div className="no-comments">No comments yet</div>
-        )}
-      </div>
+      {loading && comments.length === 0 ? (
+        <div className="flex items-center justify-center py-6 text-gray-500 dark:text-gray-400">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500 mr-3"></div>
+          Loading comments...
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {comments.length > 0 ? (
+            comments.map(comment => (
+              <CommentItem
+                key={comment._id}
+                comment={comment}
+                currentUserId={currentUser?.uid}
+                onDeleted={handleCommentDeleted}
+                projectId={projectId}
+              />
+            ))
+          ) : (
+            <div className="text-center py-6 bg-gray-50 dark:bg-gray-800 rounded-md text-gray-500 dark:text-gray-400 italic">
+              No comments yet
+            </div>
+          )}
+        </div>
+      )}
       
-      <div className="comment-form-container">
+      <div className="mt-4">
         <CommentForm 
           taskId={taskId} 
           onCommentAdded={handleCommentAdded} 

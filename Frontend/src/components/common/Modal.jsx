@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import ReactDOM from 'react-dom';
-import './Modal.css';
+import { XMarkIcon } from './Icons';
 
 /**
  * A reusable modal component that renders content in a portal
@@ -48,33 +48,50 @@ function Modal({
   // Don't render if the modal is not open
   if (!isOpen) return null;
   
+  const sizeClasses = {
+    small: 'max-w-md',
+    medium: 'max-w-2xl',
+    large: 'max-w-4xl',
+    auto: 'max-w-fit',
+  };
+  
   // Render the modal in a portal
   return ReactDOM.createPortal(
-    <div className="modal-overlay" onClick={handleOverlayClick}>
+    <div 
+      className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in"
+      onClick={handleOverlayClick}
+    >
       <div 
         ref={modalRef}
-        className={`modal-content modal-${size} ${className}`}
+        className={`bg-white dark:bg-gray-800 rounded-lg shadow-xl flex flex-col border border-gray-200 dark:border-gray-700 w-full ${sizeClasses[size]} ${className} animate-slide-in overflow-hidden`}
         onClick={e => e.stopPropagation()}
       >
-        <div className="modal-header">
-          {title && <h2 className="modal-title">{title}</h2>}
+        {/* Modal Header */}
+        <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between sticky top-0 bg-white dark:bg-gray-800 z-10">
+          {title && <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-100 pr-8">{title}</h2>}
           {!hideCloseButton && (
             <button 
-              className="modal-close-btn" 
+              className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 focus:outline-none focus:ring-2 focus:ring-primary-500 rounded-full p-1 ml-auto"
               aria-label="Close"
               onClick={onClose}
               type="button"
             >
-              &times;
+              <XMarkIcon className="w-6 h-6" />
             </button>
           )}
         </div>
         
-        <div className="modal-body">
+        {/* Modal Body */}
+        <div className="px-6 py-4 overflow-y-auto flex-1">
           {children}
         </div>
         
-        {footer && <div className="modal-footer">{footer}</div>}
+        {/* Modal Footer */}
+        {footer && (
+          <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700 flex justify-end gap-3 sticky bottom-0 bg-white dark:bg-gray-800 z-10">
+            {footer}
+          </div>
+        )}
       </div>
     </div>,
     document.body

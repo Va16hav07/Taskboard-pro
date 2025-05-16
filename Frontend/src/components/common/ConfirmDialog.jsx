@@ -1,5 +1,6 @@
 import Modal from './Modal';
-import './Modal.css';
+import Button from './Button';
+import { ExclamationCircleIcon } from './Icons';
 
 /**
  * A reusable confirmation dialog component
@@ -29,35 +30,20 @@ function ConfirmDialog({
     onClose();
   };
   
-  const getButtonClass = () => {
-    switch (confirmStyle) {
-      case 'danger':
-        return 'modal-danger-btn';
-      case 'primary':
-        return 'modal-primary-btn';
-      case 'success':
-        return 'modal-success-btn';
-      default:
-        return 'modal-primary-btn';
-    }
-  };
-  
   const footer = (
     <>
-      <button 
-        type="button" 
-        className="modal-secondary-btn" 
+      <Button 
+        variant="secondary"
         onClick={onClose}
       >
         {cancelLabel}
-      </button>
-      <button 
-        type="button"
+      </Button>
+      <Button 
+        variant={confirmStyle} 
         onClick={handleConfirm}
-        className={getButtonClass()}
       >
         {confirmLabel}
-      </button>
+      </Button>
     </>
   );
   
@@ -69,7 +55,12 @@ function ConfirmDialog({
       size="small"
       footer={footer}
     >
-      <p className="confirm-dialog-message">{message}</p>
+      <div className="flex items-center">
+        <div className="flex-shrink-0 mr-3">
+          <ExclamationCircleIcon className="h-6 w-6 text-danger-500" />
+        </div>
+        <p className="text-gray-700 dark:text-gray-300">{message}</p>
+      </div>
     </Modal>
   );
 }

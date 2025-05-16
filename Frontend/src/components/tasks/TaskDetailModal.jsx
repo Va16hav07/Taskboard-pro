@@ -5,8 +5,9 @@ import CommentList from '../comments/CommentList';
 import { useAuth } from '../../context/AuthContext';
 import Modal from '../common/Modal';
 import Toggle from '../common/Toggle';
+import Button from '../common/Button';
 import ConfirmDialog from '../common/ConfirmDialog';
-import './Tasks.css';
+import { ExclamationCircleIcon, CalendarIcon } from '../common/Icons';
 
 function TaskDetailModal({ task, onClose, onTaskUpdated }) {
   const [isEditing, setIsEditing] = useState(false);
@@ -107,16 +108,16 @@ function TaskDetailModal({ task, onClose, onTaskUpdated }) {
   // View Mode Content
   const renderViewMode = () => (
     <>
-      <div className="task-detail-content">
-        <div className="task-meta-section">
-          <div className="task-meta-item">
-            <span className="meta-label">Status:</span>
+      <div className="space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-1">
+            <span className="text-xs uppercase font-medium text-gray-500 dark:text-gray-400">Status:</span>
             {isTaskAssignee() ? (
               <select
                 value={task.status}
                 onChange={handleStatusChange}
                 disabled={changingStatus}
-                className="status-select"
+                className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white"
               >
                 {task.project?.statuses?.map(statusOption => (
                   <option key={statusOption} value={statusOption}>
@@ -125,52 +126,64 @@ function TaskDetailModal({ task, onClose, onTaskUpdated }) {
                 ))}
               </select>  
             ) : (
-              <span className="meta-value status-badge">{task.status}</span>
+              <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-sm font-medium bg-primary-100 text-primary-800 dark:bg-primary-900 dark:text-primary-200">
+                {task.status}
+              </span>
             )}
           </div>
           
-          <div className="task-meta-item">
-            <span className="meta-label">Assignee:</span>
-            <span className="meta-value">
-              {task.assignee?.email || 'Unassigned'}
+          <div className="space-y-1">
+            <span className="text-xs uppercase font-medium text-gray-500 dark:text-gray-400">Assignee:</span>
+            <div className="flex items-center">
+              <span className="text-gray-900 dark:text-gray-100">
+                {task.assignee?.email || 'Unassigned'}
+              </span>
               {isProjectOwner() && (
                 <button 
-                  className="quick-assign-btn"
+                  className="ml-2 text-primary-600 hover:text-primary-800 dark:text-primary-400 dark:hover:text-primary-300"
                   onClick={() => setIsEditing(true)}
                   title="Assign this task"
                   type="button"
                 >
-                  <span className="assign-icon">✎</span>
+                  <span className="text-sm">✎</span>
                 </button>
               )}
-            </span>
+            </div>
           </div>
           
-          <div className="task-meta-item">
-            <span className="meta-label">Due Date:</span>
-            <span className="meta-value">{formatDate(task.dueDate)}</span>
+          <div className="space-y-1">
+            <span className="text-xs uppercase font-medium text-gray-500 dark:text-gray-400">Due Date:</span>
+            <div className="flex items-center">
+              <CalendarIcon className="w-4 h-4 mr-1 text-gray-500 dark:text-gray-400" />
+              <span className="text-gray-900 dark:text-gray-100">{formatDate(task.dueDate)}</span>
+            </div>
           </div>
           
-          <div className="task-meta-item">
-            <span className="meta-label">Created:</span>
-            <span className="meta-value">{formatDate(task.createdAt)}</span>
+          <div className="space-y-1">
+            <span className="text-xs uppercase font-medium text-gray-500 dark:text-gray-400">Created:</span>
+            <span className="text-gray-900 dark:text-gray-100">{formatDate(task.createdAt)}</span>
           </div>
 
           {task.isUrgent && (
-            <div className="task-meta-item">
-              <span className="meta-label">Priority:</span>
-              <span className="meta-value urgent-badge">Urgent</span>
+            <div className="space-y-1 col-span-2">
+              <span className="text-xs uppercase font-medium text-gray-500 dark:text-gray-400">Priority:</span>
+              <div className="flex items-center">
+                <ExclamationCircleIcon className="w-4 h-4 mr-1 text-danger-500" />
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-sm font-medium bg-danger-100 text-danger-800 dark:bg-danger-900 dark:text-danger-200">
+                  Urgent
+                </span>
+              </div>
             </div>
           )}
         </div>
         
-        <div className="task-description-section">
-          <h3>Description</h3>
-          <p>{task.description || 'No description provided.'}</p>
+        <div className="space-y-2">
+          <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">Description</h3>
+          <p className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{task.description || 'No description provided.'}</p>
         </div>
       </div>
       
-      <div className="task-comments-section">
+      <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
         <CommentList taskId={task._id} projectId={task.projectId} />
       </div>
     </>
@@ -178,11 +191,22 @@ function TaskDetailModal({ task, onClose, onTaskUpdated }) {
   
   // Edit Mode Content
   const renderEditMode = () => (
-    <form id="edit-task-form" onSubmit={(e) => { e.preventDefault(); handleSubmit(); }}>
-      {error && <div className="error-message">{error}</div>}
+    <form id="edit-task-form" onSubmit={(e) => { e.preventDefault(); handleSubmit(); }} className="space-y-4">
+      {error && (
+        <div className="bg-danger-50 border-l-4 border-danger-500 p-4 dark:bg-danger-900/30">
+          <div className="flex">
+            <ExclamationCircleIcon className="h-5 w-5 text-danger-500" />
+            <div className="ml-3">
+              <p className="text-sm text-danger-700 dark:text-danger-200">{error}</p>
+            </div>
+          </div>
+        </div>
+      )}
       
-      <div className="form-group">
-        <label htmlFor="title">Task Title *</label>
+      <div>
+        <label htmlFor="title" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+          Task Title *
+        </label>
         <input
           type="text"
           id="title"
@@ -190,27 +214,34 @@ function TaskDetailModal({ task, onClose, onTaskUpdated }) {
           onChange={(e) => setTitle(e.target.value)}
           placeholder="Enter task title"
           required
+          className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white"
         />
       </div>
       
-      <div className="form-group">
-        <label htmlFor="description">Description</label>
+      <div>
+        <label htmlFor="description" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+          Description
+        </label>
         <textarea
           id="description"
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           placeholder="Enter task description"
           rows={4}
+          className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white"
         ></textarea>
       </div>
       
-      <div className="form-row">
-        <div className="form-group">
-          <label htmlFor="status">Status</label>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label htmlFor="status" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+            Status
+          </label>
           <select
             id="status"
             value={status}
             onChange={(e) => setStatus(e.target.value)}
+            className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white"
           >
             {task.project?.statuses?.map(statusOption => (
               <option key={statusOption} value={statusOption}>
@@ -220,23 +251,29 @@ function TaskDetailModal({ task, onClose, onTaskUpdated }) {
           </select>
         </div>
         
-        <div className="form-group">
-          <label htmlFor="dueDate">Due Date</label>
+        <div>
+          <label htmlFor="dueDate" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+            Due Date
+          </label>
           <input
             type="date"
             id="dueDate"
             value={dueDate}
             onChange={(e) => setDueDate(e.target.value)}
+            className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white"
           />
         </div>
       </div>
       
-      <div className="form-group">
-        <label htmlFor="assignee">Assignee (Email)</label>
+      <div>
+        <label htmlFor="assignee" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+          Assignee (Email)
+        </label>
         <select
           id="assignee"
           value={assignee}
           onChange={(e) => setAssignee(e.target.value)}
+          className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white"
         >
           <option value="">Unassigned</option>
           {task.project?.members?.map(member => (
@@ -247,12 +284,13 @@ function TaskDetailModal({ task, onClose, onTaskUpdated }) {
         </select>
       </div>
 
-      <div className="form-group toggle-container">
+      <div className="py-2">
         <Toggle 
           checked={isUrgent}
           onChange={(e) => setIsUrgent(e.target.checked)}
           label="Mark as urgent"
           id="task-urgent-toggle"
+          labelPosition="right"
         />
       </div>
     </form>
@@ -263,44 +301,39 @@ function TaskDetailModal({ task, onClose, onTaskUpdated }) {
     if (isEditing) {
       return (
         <>
-          <button 
-            type="button" 
-            className="modal-secondary-btn" 
+          <Button 
+            variant="secondary" 
             onClick={() => setIsEditing(false)}
             disabled={isSubmitting}
           >
             Cancel
-          </button>
-          <button 
+          </Button>
+          <Button 
             type="submit"
             form="edit-task-form"
-            className="modal-primary-btn" 
             disabled={isSubmitting}
           >
             {isSubmitting ? 'Saving...' : 'Save Changes'}
-          </button>
+          </Button>
         </>
       );
     }
     
     return isProjectOwner() && (
       <>
-        <button 
-          type="button"
-          className="modal-danger-btn" 
+        <Button 
+          variant="danger"
           onClick={() => setShowConfirmDelete(true)}
           disabled={isSubmitting}
         >
           Delete
-        </button>
-        <button 
-          type="button"
-          className="modal-primary-btn" 
+        </Button>
+        <Button 
           onClick={() => setIsEditing(true)}
           disabled={isSubmitting}
         >
           Edit
-        </button>
+        </Button>
       </>
     );
   };
