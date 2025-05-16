@@ -3,8 +3,10 @@ import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 import cors from 'cors';
 import morgan from 'morgan';
-import userRoutes from './routes/userRoutes.js';
 import jwt from 'jsonwebtoken';
+import userRoutes from './routes/userRoutes.js';
+import projectRoutes from './routes/projectRoutes.js';
+import { authenticateToken } from './middleware/auth.js';
 
 // Load environment variables
 dotenv.config();
@@ -26,12 +28,24 @@ mongoose.connect(process.env.MONGODB_URI)
 // Auth routes - Generate token for testing
 app.post('/api/auth/token', (req, res) => {
   const { uid, email, name } = req.body;
-  if (!uid || !email || !name) {
+  
+  if (!uid || !email) {
     return res.status(400).json({ message: 'Missing required fields' });
   }
   
-  const token = jwt.sign({ uid, email, name }, process.env.JWT_SECRET, { expiresIn: '1d' });
-  res.json({ token });
+  try {
+    const token = jwt.sign(
+      { uid, email, name }, 
+      process.env.JWT_SECRET, 
+      { expiresIn: '7d' }
+    );
+    
+    console.log('Token generated for:', email);
+    res.json({ token });
+  } catch (error) {
+    console.error('Token generation error:', error);
+    res.status(500).json({ message: 'Error generating token' });
+  }
 });
 
 // Routes
@@ -41,6 +55,12 @@ app.get('/api/health', (req, res) => {
 
 // API routes
 app.use('/api/users', userRoutes);
+app.use('/api/projects', projectRoutes);
+
+// Test authentication route
+app.get('/api/auth/test', authenticateToken, (req, res) => {
+  res.json({ message: 'Authentication successful', user: req.user });
+});
 
 // Error handling middleware
 app.use((err, req, res, next) => {

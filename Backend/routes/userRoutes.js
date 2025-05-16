@@ -1,33 +1,19 @@
 import express from 'express';
 import User from '../models/userModel.js';
-import jwt from 'jsonwebtoken';
+import { authenticateToken } from '../middleware/auth.js';
 
 const router = express.Router();
-
-// Simple authentication middleware
-const authenticateToken = (req, res, next) => {
-  const authHeader = req.headers.authorization;
-  const token = authHeader && authHeader.split(' ')[1];
-
-  if (!token) {
-    return res.status(401).json({ message: 'Access denied. No token provided.' });
-  }
-
-  try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = decoded;
-    next();
-  } catch (error) {
-    console.error('Error verifying token:', error);
-    res.status(403).json({ message: 'Invalid token.' });
-  }
-};
 
 // Create or update user
 router.post('/', authenticateToken, async (req, res) => {
   try {
     const { name, email, photoURL, uid } = req.body;
     
+    // Verify the token's uid matches the request body uid
+    if (req.user.uid !== uid) {
+      return res.status(403).json({ message: 'Unauthorized: Token doesn\'t match the user' });
+    }
+
     // Find user by uid and update, or create if doesn't exist
     const user = await User.findOneAndUpdate(
       { uid },

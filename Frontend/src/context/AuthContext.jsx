@@ -16,6 +16,7 @@ export const AuthProvider = ({ children }) => {
   const [currentUser, setCurrentUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [token, setToken] = useState(localStorage.getItem('authToken') || null);
   
   // Sign in with Google
   const signInWithGoogle = async () => {
@@ -23,16 +24,19 @@ export const AuthProvider = ({ children }) => {
       setError('');
       const result = await signInWithPopup(auth, googleProvider);
       
-      // Get a token from our backend instead of Firebase
-      // This simplifies the backend auth flow
+      // Get Firebase ID token
+      const firebaseToken = await result.user.getIdToken();
+      
+      // Get a token from our backend
       const response = await axios.post(`${API_URL}/auth/token`, {
         uid: result.user.uid,
         email: result.user.email,
         name: result.user.displayName
       });
       
-      const token = response.data.token;
-      localStorage.setItem('authToken', token);
+      const backendToken = response.data.token;
+      localStorage.setItem('authToken', backendToken);
+      setToken(backendToken);
       
       // Create or update user in backend
       await axios.post(`${API_URL}/users`, {
@@ -42,7 +46,7 @@ export const AuthProvider = ({ children }) => {
         uid: result.user.uid
       }, {
         headers: {
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${backendToken}`
         }
       });
       
@@ -57,6 +61,7 @@ export const AuthProvider = ({ children }) => {
   // Sign out
   const logOut = () => {
     localStorage.removeItem('authToken');
+    setToken(null);
     return signOut(auth);
   };
 
@@ -64,14 +69,35 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setCurrentUser(user);
+      
+      if (user && !token) {
+        try {
+          // If user is logged in but we don't have a token, get one
+          const firebaseToken = await user.getIdToken();
+          
+          const response = await axios.post(`${API_URL}/auth/token`, {
+            uid: user.uid,
+            email: user.email,
+            name: user.displayName
+          });
+          
+          const backendToken = response.data.token;
+          localStorage.setItem('authToken', backendToken);
+          setToken(backendToken);
+        } catch (err) {
+          console.error("Error refreshing token:", err);
+        }
+      }
+      
       setLoading(false);
     });
 
     return unsubscribe;
-  }, []);
+  }, [token]);
 
   const value = {
     currentUser,
+    token,
     signInWithGoogle,
     logOut,
     error

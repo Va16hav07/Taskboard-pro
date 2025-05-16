@@ -175,3 +175,19 @@
   padding: 3rem;
   color: #64748b;
 }
+
+.view-all-link {
+  color: #2563eb;
+  text-decoration: none;
+  font-size: 0.875rem;
+}
+
+.view-all-link:hover {
+  text-decoration: underline;
+}
+
+.page-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+}

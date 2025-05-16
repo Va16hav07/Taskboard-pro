@@ -1,6 +1,6 @@
-import admin from '../config/firebase-admin.js';
+import jwt from 'jsonwebtoken';
 
-export const authenticateToken = async (req, res, next) => {
+export const authenticateToken = (req, res, next) => {
   const authHeader = req.headers.authorization;
   const token = authHeader && authHeader.split(' ')[1];
 
@@ -9,11 +9,12 @@ export const authenticateToken = async (req, res, next) => {
   }
 
   try {
-    const decodedToken = await admin.auth().verifyIdToken(token);
-    req.user = decodedToken;
+    // Verify JWT token
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    req.user = decoded;
     next();
   } catch (error) {
     console.error('Error verifying token:', error);
-    res.status(403).json({ message: 'Invalid token.' });
+    return res.status(403).json({ message: 'Invalid token.' });
   }
 };

@@ -4,6 +4,8 @@ import Header from './components/layout/Header';
 import Login from './components/auth/Login';
 import Dashboard from './pages/Dashboard';
 import Home from './pages/Home';
+import Projects from './pages/Projects';
+import ProjectDetails from './pages/ProjectDetails';
 import './App.css';
 
 // Protected Route component
@@ -30,7 +32,16 @@ function AppContent() {
               <Dashboard />
             </ProtectedRoute>
           } />
-          {/* Add more routes as needed */}
+          <Route path="/projects" element={
+            <ProtectedRoute>
+              <Projects />
+            </ProtectedRoute>
+          } />
+          <Route path="/projects/:projectId" element={
+            <ProtectedRoute>
+              <ProjectDetails />
+            </ProtectedRoute>
+          } />
         </Routes>
       </main>
     </Router>
