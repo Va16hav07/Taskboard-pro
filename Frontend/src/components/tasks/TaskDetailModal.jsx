@@ -53,13 +53,18 @@ function TaskDetailModal({ task, onClose, onTaskUpdated }) {
     
     try {
       setIsSubmitting(true);
-      await updateTask(task._id, {
-        title,
-        description,
-        status,
-        assignee,
-        dueDate: dueDate || undefined
-      });
+      
+      // Build update object with only changed fields
+      const updates = {};
+      if (title !== task.title) updates.title = title;
+      if (description !== (task.description || '')) updates.description = description;
+      if (status !== task.status) updates.status = status;
+      if (assignee !== (task.assignee?.email || '')) updates.assignee = assignee || null;
+      if (dueDate !== (task.dueDate ? format(new Date(task.dueDate), 'yyyy-MM-dd') : '')) {
+        updates.dueDate = dueDate || null;
+      }
+      
+      await updateTask(task._id, updates);
       onTaskUpdated();
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to update task');
@@ -106,7 +111,18 @@ function TaskDetailModal({ task, onClose, onTaskUpdated }) {
               
               <div className="task-meta-item">
                 <span className="meta-label">Assignee:</span>
-                <span className="meta-value">{task.assignee?.email || 'Unassigned'}</span>
+                <span className="meta-value">
+                  {task.assignee?.email || 'Unassigned'}
+                  {isProjectOwner() && (
+                    <button 
+                      className="quick-assign-btn"
+                      onClick={() => setIsEditing(true)}
+                      title="Assign this task"
+                    >
+                      <span className="assign-icon">✎</span>
+                    </button>
+                  )}
+                </span>
               </div>
               
               <div className="task-meta-item">
@@ -126,27 +142,28 @@ function TaskDetailModal({ task, onClose, onTaskUpdated }) {
             </div>
           </div>
           
-          {/* Add comments section */}
           <div className="task-comments-section">
             <CommentList taskId={task._id} projectId={task.projectId} />
           </div>
           
-          {isProjectOwner() && (
-            <div className="modal-actions">
-              <button 
-                className="delete-btn" 
-                onClick={handleDelete}
-              >
-                Delete
-              </button>
-              <button 
-                className="edit-btn" 
-                onClick={() => setIsEditing(true)}
-              >
-                Edit
-              </button>
-            </div>
-          )}
+          <div className="modal-actions">
+            {isProjectOwner() && (
+              <>
+                <button 
+                  className="delete-btn" 
+                  onClick={handleDelete}
+                >
+                  Delete
+                </button>
+                <button 
+                  className="edit-btn" 
+                  onClick={() => setIsEditing(true)}
+                >
+                  Edit
+                </button>
+              </>
+            )}
+          </div>
         </div>
       </div>
     );

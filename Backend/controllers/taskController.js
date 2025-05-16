@@ -170,34 +170,13 @@ export const updateTask = async (req, res) => {
       return res.status(404).json({ message: 'Project not found' });
     }
     
-    // Only project owners can update task details
+    // Check if user is the task assignee or project owner
     const userMember = project.members.find(member => member.userId === uid);
-    if (!userMember || userMember.role !== 'owner') {
+    const isProjectOwner = userMember && userMember.role === 'owner';
+    
+    // Only project owners can update most task details
+    if (!isProjectOwner) {
       return res.status(403).json({ message: 'Access denied. Only project owners can update task details.' });
-    }
-    
-    // Verify the status is valid for the project if provided
-    if (status && !project.statuses.includes(status)) {
-      return res.status(400).json({ 
-        message: 'Invalid status. Must be one of the project statuses.',
-        validStatuses: project.statuses
-      });
-    }
-    
-    // Find the assignee if provided by email
-    let assigneeData = null;
-    if (assignee) {
-      // Check if the assignee email is a project member
-      const assigneeMember = project.members.find(member => member.email === assignee);
-      
-      if (!assigneeMember) {
-        return res.status(400).json({ message: 'Assignee must be a member of the project.' });
-      }
-      
-      assigneeData = {
-        userId: assigneeMember.userId,
-        email: assigneeMember.email
-      };
     }
     
     // Save the previous state for automation comparison
@@ -205,7 +184,7 @@ export const updateTask = async (req, res) => {
     
     // Check if assignee is changing
     const isAssigneeChanging = assignee !== undefined && 
-                              (!task.assignee || task.assignee.email !== assignee);
+      (!task.assignee || task.assignee.email !== assignee);
     
     // Update task fields
     if (title) task.title = title;

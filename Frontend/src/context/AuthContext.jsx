@@ -70,10 +70,10 @@ export const AuthProvider = ({ children }) => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setCurrentUser(user);
       
-      if (user && !token) {
+      if (user) {
         try {
-          // If user is logged in but we don't have a token, get one
-          const firebaseToken = await user.getIdToken();
+          // Always refresh token when user is detected
+          const firebaseToken = await user.getIdToken(true); // Force token refresh
           
           const response = await axios.post(`${API_URL}/auth/token`, {
             uid: user.uid,
@@ -84,16 +84,34 @@ export const AuthProvider = ({ children }) => {
           const backendToken = response.data.token;
           localStorage.setItem('authToken', backendToken);
           setToken(backendToken);
+          
+          // Clear any cached API responses
+          if (window.caches) {
+            try {
+              const cacheNames = await window.caches.keys();
+              await Promise.all(
+                cacheNames.map(cacheName => window.caches.delete(cacheName))
+              );
+            } catch (cacheError) {
+              console.error("Error clearing cache:", cacheError);
+            }
+          }
         } catch (err) {
           console.error("Error refreshing token:", err);
+          // Clear potentially invalid tokens
+          localStorage.removeItem('authToken');
+          setToken(null);
         }
+      } else {
+        localStorage.removeItem('authToken');
+        setToken(null);
       }
       
       setLoading(false);
     });
 
     return unsubscribe;
-  }, [token]);
+  }, []);
 
   const value = {
     currentUser,

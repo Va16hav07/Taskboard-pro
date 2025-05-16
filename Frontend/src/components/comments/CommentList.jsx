@@ -12,6 +12,7 @@ function CommentList({ taskId, projectId }) {
   const [error, setError] = useState(null);
   const { currentUser } = useAuth();
   const { socket } = useSocket();
+  const [debugMode, setDebugMode] = useState(false);
 
   const fetchComments = async () => {
     try {
@@ -61,15 +62,55 @@ function CommentList({ taskId, projectId }) {
     setComments(comments.filter(comment => comment._id !== commentId));
   };
 
+  const handleRefreshToken = async () => {
+    try {
+      // Force Firebase to refresh the token
+      if (currentUser) {
+        const newToken = await currentUser.getIdToken(true);
+        console.log("Token refreshed, fetching comments again...");
+        fetchComments();
+      }
+    } catch (err) {
+      console.error("Error refreshing token:", err);
+    }
+  };
+
   if (loading && comments.length === 0) {
     return <div className="comment-loading">Loading comments...</div>;
   }
 
   return (
     <div className="comments-container">
-      <h3 className="comments-header">Comments ({comments.length})</h3>
+      <h3 className="comments-header">
+        Comments ({comments.length})
+        {debugMode && (
+          <button 
+            className="debug-btn" 
+            onClick={handleRefreshToken}
+            title="Refresh auth token"
+          >
+            🔄
+          </button>
+        )}
+        <span 
+          className="debug-toggle" 
+          onClick={() => setDebugMode(!debugMode)}
+          title="Toggle debug mode"
+        >
+          {debugMode ? "🐞" : "⚙️"}
+        </span>
+      </h3>
       
-      {error && <div className="comment-error">{error}</div>}
+      {error && (
+        <div className="comment-error">
+          {error}
+          {debugMode && (
+            <button onClick={fetchComments} className="retry-btn">
+              Retry
+            </button>
+          )}
+        </div>
+      )}
       
       <div className="comment-list">
         {comments.length > 0 ? (
