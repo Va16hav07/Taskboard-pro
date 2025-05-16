@@ -184,7 +184,7 @@ function Header() {
             </Link>
             <Link
               to="/profile"
-              className="border-l-4 border-transparent text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800 hover:border-gray-300 dark:text-gray-300 block pl-3 pr-4 py-2 text-base font-medium"
+              className="border-l-4 border-transparent text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800 hover:border-gray-300 hover:text-gray-700 dark:text-gray-300 dark:hover:text-gray-100 block pl-3 pr-4 py-2 text-base font-medium"
               onClick={() => setIsMobileMenuOpen(false)}
             >
               <div className="flex items-center">
@@ -193,15 +193,15 @@ function Header() {
               </div>
             </Link>
             <button
-              className="w-full text-left border-l-4 border-transparent text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800 hover:border-gray-300 dark:text-gray-300 block pl-3 pr-4 py-2 text-base font-medium"
+              className="group w-full text-left border-l-4 border-transparent text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800 hover:border-gray-300 hover:text-gray-700 dark:hover:text-gray-100 dark:text-gray-300 block pl-3 pr-4 py-2 text-base font-medium transition-colors duration-200"
               onClick={() => {
                 setIsMobileMenuOpen(false);
                 handleSignOut();
               }}
             >
               <div className="flex items-center">
-                <FiLogOut className="mr-2" />
-                Sign out
+                <FiLogOut className="mr-2 text-gray-500 group-hover:text-gray-700 dark:text-gray-400 dark:group-hover:text-gray-100 transition-colors duration-200" />
+                <span>Sign out</span>
               </div>
             </button>
           </div>
