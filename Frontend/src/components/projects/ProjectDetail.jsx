@@ -3,6 +3,8 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { getProjectById, updateProject, deleteProject } from '../../services/projectService';
 import MembersList from './MembersList';
 import InviteMemberModal from './InviteMemberModal';
+import Kanban from '../tasks/Kanban';
+import { useAuth } from '../../context/AuthContext';
 import './Projects.css';
 
 function ProjectDetail() {
@@ -173,6 +175,13 @@ function ProjectDetail() {
           onClose={() => setShowInviteModal(false)}
           onMemberInvited={handleMemberInvited}
         />
+      )}
+
+      {/* Add Kanban board below the members section */}
+      {project && (
+        <div className="project-tasks-section">
+          <Kanban project={project} />
+        </div>
       )}
     </div>
   );

@@ -34,6 +34,10 @@ const projectSchema = new mongoose.Schema({
       default: Date.now
     }
   }],
+  statuses: {
+    type: [String],
+    default: ['To Do', 'In Progress', 'Done']
+  },
   createdAt: {
     type: Date,
     default: Date.now
@@ -44,7 +48,6 @@ const projectSchema = new mongoose.Schema({
   }
 });
 
-// Update the updatedAt field on save
 projectSchema.pre('save', function(next) {
   this.updatedAt = Date.now();
   next();

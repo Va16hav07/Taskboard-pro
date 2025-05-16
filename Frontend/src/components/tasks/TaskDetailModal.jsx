@@ -1,0 +1,228 @@
+import { useState } from 'react';
+import { format } from 'date-fns';
+import { updateTask, deleteTask } from '../../services/taskService';
+import './Tasks.css';
+
+function TaskDetailModal({ task, onClose, onTaskUpdated }) {
+  const [isEditing, setIsEditing] = useState(false);
+  const [title, setTitle] = useState(task.title);
+  const [description, setDescription] = useState(task.description || '');
+  const [status, setStatus] = useState(task.status);
+  const [assignee, setAssignee] = useState(task.assignee?.email || '');
+  const [dueDate, setDueDate] = useState(
+    task.dueDate ? format(new Date(task.dueDate), 'yyyy-MM-dd') : ''
+  );
+  const [error, setError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // Fetch project info for statuses and members
+  const [project, setProject] = useState(null);
+  const [loading, setLoading] = useState(true);
+  
+  // In a real implementation, we would fetch the project here
+  // For now, we'll assume it's passed as a prop
+  
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    
+    if (!title.trim()) {
+      setError('Task title is required');
+      return;
+    }
+    
+    try {
+      setIsSubmitting(true);
+      await updateTask(task._id, {
+        title,
+        description,
+        status,
+        assignee,
+        dueDate: dueDate || undefined
+      });
+      onTaskUpdated();
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to update task');
+      setIsSubmitting(false);
+    }
+  };
+  
+  const handleDelete = async () => {
+    if (window.confirm('Are you sure you want to delete this task? This cannot be undone.')) {
+      try {
+        setIsSubmitting(true);
+        await deleteTask(task._id);
+        onTaskUpdated();
+      } catch (err) {
+        setError(err.response?.data?.message || 'Failed to delete task');
+        setIsSubmitting(false);
+      }
+    }
+  };
+  
+  const formatDate = (dateString) => {
+    if (!dateString) return 'No due date';
+    
+    const date = new Date(dateString);
+    return format(date, 'MMMM d, yyyy');
+  };
+  
+  // View Mode
+  if (!isEditing) {
+    return (
+      <div className="modal-overlay">
+        <div className="modal-content task-detail-modal">
+          <div className="modal-header">
+            <h2>{task.title}</h2>
+            <button className="close-btn" onClick={onClose}>&times;</button>
+          </div>
+          
+          <div className="task-detail-content">
+            <div className="task-meta-section">
+              <div className="task-meta-item">
+                <span className="meta-label">Status:</span>
+                <span className="meta-value status-badge">{task.status}</span>
+              </div>
+              
+              <div className="task-meta-item">
+                <span className="meta-label">Assignee:</span>
+                <span className="meta-value">{task.assignee?.email || 'Unassigned'}</span>
+              </div>
+              
+              <div className="task-meta-item">
+                <span className="meta-label">Due Date:</span>
+                <span className="meta-value">{formatDate(task.dueDate)}</span>
+              </div>
+              
+              <div className="task-meta-item">
+                <span className="meta-label">Created:</span>
+                <span className="meta-value">{formatDate(task.createdAt)}</span>
+              </div>
+            </div>
+            
+            <div className="task-description-section">
+              <h3>Description</h3>
+              <p>{task.description || 'No description provided.'}</p>
+            </div>
+          </div>
+          
+          <div className="modal-actions">
+            <button 
+              className="delete-btn" 
+              onClick={handleDelete}
+            >
+              Delete
+            </button>
+            <button 
+              className="edit-btn" 
+              onClick={() => setIsEditing(true)}
+            >
+              Edit
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+  
+  // Edit Mode
+  return (
+    <div className="modal-overlay">
+      <div className="modal-content">
+        <div className="modal-header">
+          <h2>Edit Task</h2>
+          <button className="close-btn" onClick={onClose}>&times;</button>
+        </div>
+        
+        <form onSubmit={handleSubmit}>
+          {error && <div className="error-message">{error}</div>}
+          
+          <div className="form-group">
+            <label htmlFor="title">Task Title *</label>
+            <input
+              type="text"
+              id="title"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="Enter task title"
+              required
+            />
+          </div>
+          
+          <div className="form-group">
+            <label htmlFor="description">Description</label>
+            <textarea
+              id="description"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Enter task description"
+              rows={4}
+            ></textarea>
+          </div>
+          
+          <div className="form-row">
+            <div className="form-group">
+              <label htmlFor="status">Status</label>
+              <select
+                id="status"
+                value={status}
+                onChange={(e) => setStatus(e.target.value)}
+              >
+                {task.project?.statuses?.map(statusOption => (
+                  <option key={statusOption} value={statusOption}>
+                    {statusOption}
+                  </option>
+                ))}
+              </select>
+            </div>
+            
+            <div className="form-group">
+              <label htmlFor="dueDate">Due Date</label>
+              <input
+                type="date"
+                id="dueDate"
+                value={dueDate}
+                onChange={(e) => setDueDate(e.target.value)}
+              />
+            </div>
+          </div>
+          
+          <div className="form-group">
+            <label htmlFor="assignee">Assignee (Email)</label>
+            <select
+              id="assignee"
+              value={assignee}
+              onChange={(e) => setAssignee(e.target.value)}
+            >
+              <option value="">Unassigned</option>
+              {task.project?.members?.map(member => (
+                <option key={member.email} value={member.email}>
+                  {member.email}
+                </option>
+              ))}
+            </select>
+          </div>
+          
+          <div className="modal-actions">
+            <button 
+              type="button" 
+              className="cancel-btn" 
+              onClick={() => setIsEditing(false)}
+              disabled={isSubmitting}
+            >
+              Cancel
+            </button>
+            <button 
+              type="submit" 
+              className="submit-btn" 
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? 'Saving...' : 'Save Changes'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+export default TaskDetailModal;

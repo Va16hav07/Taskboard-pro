@@ -6,6 +6,7 @@ import morgan from 'morgan';
 import jwt from 'jsonwebtoken';
 import userRoutes from './routes/userRoutes.js';
 import projectRoutes from './routes/projectRoutes.js';
+import taskRoutes from './routes/taskRoutes.js';
 import { authenticateToken } from './middleware/auth.js';
 
 // Load environment variables
@@ -56,6 +57,7 @@ app.get('/api/health', (req, res) => {
 // API routes
 app.use('/api/users', userRoutes);
 app.use('/api/projects', projectRoutes);
+app.use('/api/tasks', taskRoutes);
 
 // Test authentication route
 app.get('/api/auth/test', authenticateToken, (req, res) => {
