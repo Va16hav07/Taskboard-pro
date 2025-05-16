@@ -3,7 +3,7 @@ import { formatDistanceToNow } from 'date-fns';
 import TaskDetailModal from './TaskDetailModal';
 import './Tasks.css';
 
-function TaskCard({ task, onTaskUpdated, onDragStart }) {
+function TaskCard({ task, onTaskUpdated, onDragStart, onClick }) {
   const [showDetailModal, setShowDetailModal] = useState(false);
   
   const formatDate = (dateString) => {
@@ -18,13 +18,21 @@ function TaskCard({ task, onTaskUpdated, onDragStart }) {
     if (onTaskUpdated) onTaskUpdated();
   };
   
+  const handleClick = () => {
+    if (onClick) {
+      onClick(task);
+    } else {
+      setShowDetailModal(true);
+    }
+  };
+  
   return (
     <>
       <div 
         className="task-card"
         draggable
         onDragStart={(e) => onDragStart(e, task._id)}
-        onClick={() => setShowDetailModal(true)}
+        onClick={handleClick}
       >
         <h4 className="task-title">{task.title}</h4>
         
@@ -47,7 +55,7 @@ function TaskCard({ task, onTaskUpdated, onDragStart }) {
         </div>
       </div>
       
-      {showDetailModal && (
+      {showDetailModal && !onClick && (
         <TaskDetailModal
           task={task}
           project={task.project}

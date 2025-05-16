@@ -1,11 +1,14 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getProjectById, updateProject, deleteProject } from '../../services/projectService';
+import { getTaskById } from '../../services/taskService';
 import MembersList from './MembersList';
 import InviteMemberModal from './InviteMemberModal';
 import Kanban from '../tasks/Kanban';
+import TaskDetailModal from '../tasks/TaskDetailModal';
 import AutomationList from '../automations/AutomationList';
 import { useAuth } from '../../context/AuthContext';
+import { getTaskIdFromUrl } from '../../utils/urlUtils';
 import './Projects.css';
 
 function ProjectDetail() {
@@ -20,6 +23,12 @@ function ProjectDetail() {
   
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
+  
+  // For direct task links
+  const [selectedTask, setSelectedTask] = useState(null);
+  const [taskLoading, setTaskLoading] = useState(false);
+  
+  const { currentUser } = useAuth();
   
   const fetchProject = async () => {
     try {
@@ -39,6 +48,22 @@ function ProjectDetail() {
   
   useEffect(() => {
     fetchProject();
+    
+    // Check if there's a task ID in the URL
+    const taskId = getTaskIdFromUrl();
+    if (taskId) {
+      setTaskLoading(true);
+      getTaskById(taskId)
+        .then(task => {
+          setSelectedTask(task);
+        })
+        .catch(err => {
+          console.error('Error loading task:', err);
+        })
+        .finally(() => {
+          setTaskLoading(false);
+        });
+    }
   }, [projectId]);
   
   const handleSaveChanges = async () => {
@@ -74,6 +99,12 @@ function ProjectDetail() {
   const handleMemberInvited = () => {
     setShowInviteModal(false);
     fetchProject();
+  };
+  
+  const handleTaskModalClosed = () => {
+    setSelectedTask(null);
+    // Remove the task parameter from URL
+    navigate(`/projects/${projectId}`, { replace: true });
   };
   
   if (loading) {
@@ -181,7 +212,7 @@ function ProjectDetail() {
       {/* Add Kanban board below the members section */}
       {project && (
         <div className="project-tasks-section">
-          <Kanban project={project} />
+          <Kanban project={project} onTaskSelected={setSelectedTask} />
         </div>
       )}
       
@@ -189,6 +220,15 @@ function ProjectDetail() {
         <div className="project-automations-section">
           <AutomationList project={project} isOwner={isOwner()} />
         </div>
+      )}
+      
+      {/* Task detail modal */}
+      {selectedTask && (
+        <TaskDetailModal
+          task={selectedTask}
+          onClose={handleTaskModalClosed}
+          onTaskUpdated={fetchProject}
+        />
       )}
     </div>
   );

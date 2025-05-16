@@ -1,5 +1,6 @@
 import Project from '../models/projectModel.js';
 import User from '../models/userModel.js';
+import { sendProjectInvitation } from '../services/emailService.js';
 
 // Create a new project
 export const createProject = async (req, res) => {
@@ -150,7 +151,28 @@ export const inviteUserToProject = async (req, res) => {
     
     await project.save();
     
-    // TODO: Send email invitation to user (future enhancement)
+    // Get the inviter's name
+    const inviter = await User.findOne({ uid });
+    
+    // Generate invitation link
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+    const invitationLink = `${frontendUrl}/projects/${projectId}`;
+    
+    // Send invitation email
+    try {
+      if (process.env.EMAIL_USER) {
+        await sendProjectInvitation({
+          email,
+          projectName: project.title,
+          inviterName: inviter?.name || 'A project owner',
+          invitationLink
+        });
+        console.log(`Invitation email sent to ${email}`);
+      }
+    } catch (emailError) {
+      console.error('Error sending invitation email:', emailError);
+      // Don't fail the request if email sending fails
+    }
     
     res.status(200).json({ message: 'User invited successfully', project });
   } catch (error) {

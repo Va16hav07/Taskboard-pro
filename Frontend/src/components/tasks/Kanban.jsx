@@ -7,7 +7,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useSocket } from '../../context/SocketContext';
 import './Tasks.css';
 
-function Kanban({ project }) {
+function Kanban({ project, onTaskSelected }) {
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -117,6 +117,12 @@ function Kanban({ project }) {
     setShowEditStatusesModal(false);
     fetchTasks();
   };
+
+  const handleTaskClick = (task) => {
+    if (onTaskSelected) {
+      onTaskSelected(task);
+    }
+  };
   
   if (loading) {
     return <div className="loading-spinner">Loading tasks...</div>;
@@ -172,6 +178,7 @@ function Kanban({ project }) {
                     task={task}
                     onTaskUpdated={fetchTasks}
                     onDragStart={handleDragStart}
+                    onClick={() => handleTaskClick(task)}
                   />
                 ))
               ) : (

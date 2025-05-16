@@ -3,6 +3,7 @@ import Project from '../models/projectModel.js';
 import User from '../models/userModel.js';
 import { processTaskAutomations } from '../services/automationService.js';
 import { getIO } from '../websocket/socketServer.js';
+import { sendTaskAssignment } from '../services/emailService.js';
 
 // Create a new task
 export const createTask = async (req, res) => {
@@ -57,6 +58,31 @@ export const createTask = async (req, res) => {
     });
     
     await task.save();
+    
+    // Send email notification to assignee if task is assigned
+    if (assigneeData) {
+      try {
+        // Get the creator's name
+        const creator = await User.findOne({ uid });
+        
+        // Generate task link
+        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+        const taskLink = `${frontendUrl}/projects/${projectId}?task=${task._id}`;
+        
+        await sendTaskAssignment({
+          email: assigneeData.email,
+          taskTitle: task.title,
+          projectName: project.title,
+          assignerName: creator ? creator.name : 'A team member',
+          dueDate: task.dueDate,
+          taskLink
+        });
+        console.log(`Task assignment email sent to ${assigneeData.email}`);
+      } catch (emailError) {
+        console.error('Error sending task assignment email:', emailError);
+        // Don't fail the request if email sending fails
+      }
+    }
     
     // Emit real-time update via WebSocket
     const io = getIO();
@@ -177,10 +203,17 @@ export const updateTask = async (req, res) => {
     // Save the previous state for automation comparison
     const previousTask = { ...task.toObject() };
     
+    // Check if assignee is changing
+    const isAssigneeChanging = assignee !== undefined && 
+                              (!task.assignee || task.assignee.email !== assignee);
+    
     // Update task fields
     if (title) task.title = title;
     if (description !== undefined) task.description = description;
     if (status) task.status = status;
+    
+    // Handle assignee update
+    let newAssigneeData = null;
     if (assignee !== undefined) {
       if (assignee) {
         // Check if the assignee email is a project member
@@ -190,18 +223,45 @@ export const updateTask = async (req, res) => {
           return res.status(400).json({ message: 'Assignee must be a member of the project.' });
         }
         
-        task.assignee = {
+        newAssigneeData = {
           userId: assigneeMember.userId,
           email: assigneeMember.email
         };
+        task.assignee = newAssigneeData;
       } else {
         task.assignee = null;
       }
     }
+    
     if (dueDate !== undefined) task.dueDate = dueDate;
     task.updatedAt = Date.now();
     
     await task.save();
+    
+    // Send email notification if assignee was changed
+    if (isAssigneeChanging && newAssigneeData) {
+      try {
+        // Get the assigner's name
+        const assigner = await User.findOne({ uid });
+        
+        // Generate task link
+        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+        const taskLink = `${frontendUrl}/projects/${task.projectId}?task=${task._id}`;
+        
+        await sendTaskAssignment({
+          email: newAssigneeData.email,
+          taskTitle: task.title,
+          projectName: project.title,
+          assignerName: assigner ? assigner.name : 'A team member',
+          dueDate: task.dueDate,
+          taskLink
+        });
+        console.log(`Task assignment email sent to ${newAssigneeData.email}`);
+      } catch (emailError) {
+        console.error('Error sending task assignment email:', emailError);
+        // Don't fail the request if email sending fails
+      }
+    }
     
     // Process automations
     await processTaskAutomations(task, previousTask);
