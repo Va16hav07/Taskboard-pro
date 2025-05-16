@@ -1,6 +1,7 @@
 import Task from '../models/taskModel.js';
 import Project from '../models/projectModel.js';
 import User from '../models/userModel.js';
+import { processTaskAutomations } from '../services/automationService.js';
 
 // Create a new task
 export const createTask = async (req, res) => {
@@ -168,15 +169,37 @@ export const updateTask = async (req, res) => {
       };
     }
     
+    // Save the previous state for automation comparison
+    const previousTask = { ...task.toObject() };
+    
     // Update task fields
     if (title) task.title = title;
     if (description !== undefined) task.description = description;
     if (status) task.status = status;
-    if (assignee) task.assignee = assigneeData;
-    if (dueDate) task.dueDate = dueDate;
+    if (assignee !== undefined) {
+      if (assignee) {
+        // Check if the assignee email is a project member
+        const assigneeMember = project.members.find(member => member.email === assignee);
+        
+        if (!assigneeMember) {
+          return res.status(400).json({ message: 'Assignee must be a member of the project.' });
+        }
+        
+        task.assignee = {
+          userId: assigneeMember.userId,
+          email: assigneeMember.email
+        };
+      } else {
+        task.assignee = null;
+      }
+    }
+    if (dueDate !== undefined) task.dueDate = dueDate;
     task.updatedAt = Date.now();
     
     await task.save();
+    
+    // Process automations
+    await processTaskAutomations(task, previousTask);
     
     res.status(200).json(task);
   } catch (error) {
@@ -217,10 +240,16 @@ export const updateTaskStatus = async (req, res) => {
       });
     }
     
+    // Save the previous state for automation comparison
+    const previousTask = { ...task.toObject() };
+    
     task.status = status;
     task.updatedAt = Date.now();
     
     await task.save();
+    
+    // Process automations
+    await processTaskAutomations(task, previousTask);
     
     res.status(200).json(task);
   } catch (error) {

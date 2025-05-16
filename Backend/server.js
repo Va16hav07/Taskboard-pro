@@ -7,7 +7,9 @@ import jwt from 'jsonwebtoken';
 import userRoutes from './routes/userRoutes.js';
 import projectRoutes from './routes/projectRoutes.js';
 import taskRoutes from './routes/taskRoutes.js';
+import automationRoutes from './routes/automationRoutes.js';
 import { authenticateToken } from './middleware/auth.js';
+import { setupDueDateAutomations } from './services/automationService.js';
 
 // Load environment variables
 dotenv.config();
@@ -58,6 +60,7 @@ app.get('/api/health', (req, res) => {
 app.use('/api/users', userRoutes);
 app.use('/api/projects', projectRoutes);
 app.use('/api/tasks', taskRoutes);
+app.use('/api/automations', automationRoutes);
 
 // Test authentication route
 app.get('/api/auth/test', authenticateToken, (req, res) => {
@@ -74,6 +77,9 @@ app.use((err, req, res, next) => {
 });
 
 // Start server
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
+  
+  // Set up the automation scheduler
+  setupDueDateAutomations();
 });

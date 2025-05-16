@@ -33,11 +33,13 @@ function Header() {
       <div className="user-section">
         {currentUser ? (
           <div className="user-profile">
-            <img 
-              src={currentUser.photoURL || '/default-avatar.png'} 
-              alt="Profile" 
-              className="user-avatar" 
-            />
+            <Link to="/profile" className="user-avatar-link">
+              <img 
+                src={currentUser.photoURL || '/default-avatar.png'} 
+                alt="Profile" 
+                className="user-avatar" 
+              />
+            </Link>
             <span className="user-name">{currentUser.displayName}</span>
             <button onClick={handleLogout} className="logout-btn">Logout</button>
           </div>

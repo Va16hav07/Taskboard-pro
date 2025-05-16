@@ -4,6 +4,7 @@ import { getProjectById, updateProject, deleteProject } from '../../services/pro
 import MembersList from './MembersList';
 import InviteMemberModal from './InviteMemberModal';
 import Kanban from '../tasks/Kanban';
+import AutomationList from '../automations/AutomationList';
 import { useAuth } from '../../context/AuthContext';
 import './Projects.css';
 
@@ -181,6 +182,12 @@ function ProjectDetail() {
       {project && (
         <div className="project-tasks-section">
           <Kanban project={project} />
+        </div>
+      )}
+      
+      {project && (
+        <div className="project-automations-section">
+          <AutomationList project={project} isOwner={isOwner()} />
         </div>
       )}
     </div>

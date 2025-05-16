@@ -6,6 +6,7 @@ import Dashboard from './pages/Dashboard';
 import Home from './pages/Home';
 import Projects from './pages/Projects';
 import ProjectDetails from './pages/ProjectDetails';
+import UserProfile from './pages/UserProfile';
 import './App.css';
 
 // Protected Route component
@@ -40,6 +41,11 @@ function AppContent() {
           <Route path="/projects/:projectId" element={
             <ProtectedRoute>
               <ProjectDetails />
+            </ProtectedRoute>
+          } />
+          <Route path="/profile" element={
+            <ProtectedRoute>
+              <UserProfile />
             </ProtectedRoute>
           } />
         </Routes>
