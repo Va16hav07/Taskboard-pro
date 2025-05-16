@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import { FcGoogle } from 'react-icons/fc'; // Import Google icon from react-icons
 
 function Login() {
   const { signInWithGoogle, currentUser, error } = useAuth();
@@ -54,11 +55,7 @@ function Login() {
             className="group relative w-full flex justify-center py-3 px-4 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
           >
             <span className="flex items-center">
-              <img 
-                src="https://upload.wikimedia.org/wikipedia/commons/5/53/Google_%22G%22_Logo.svg" 
-                alt="Google logo"
-                className="w-5 h-5 mr-3"
-              />
+              <FcGoogle className="w-5 h-5 mr-3" />
               Sign in with Google
             </span>
           </button>
