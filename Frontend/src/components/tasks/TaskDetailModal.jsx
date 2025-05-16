@@ -28,14 +28,20 @@ function TaskDetailModal({ task, onClose, onTaskUpdated }) {
   
   // Check if current user is project owner
   const isProjectOwner = () => {
-    return task.project?.members?.some(
+    const isOwner = task.project?.members?.some(
       member => member.userId === currentUser?.uid && member.role === 'owner'
     );
+    console.log('Is project owner:', isOwner);
+    return isOwner;
   };
   
   // Check if current user is task assignee
   const isTaskAssignee = () => {
-    return task.assignee && task.assignee.userId === currentUser?.uid;
+    const isAssignee = task.assignee && task.assignee.userId === currentUser?.uid;
+    console.log('Is task assignee:', isAssignee);
+    console.log('Task assignee ID:', task.assignee?.userId);
+    console.log('Current user ID:', currentUser?.uid);
+    return isAssignee;
   };
   
   // Check if user can change task status

@@ -24,14 +24,30 @@ function Kanban({ project, isOwner }) {
     );
   };
   
+  // Enhance tasks with project data
+  const enhanceTasksWithProjectData = (tasks) => {
+    return tasks.map(task => ({
+      ...task,
+      project: {
+        _id: project._id,
+        title: project.title,
+        statuses: project.statuses,
+        members: project.members
+      }
+    }));
+  };
+
   const fetchTasks = async () => {
     try {
       setLoading(true);
-      const projectTasks = await getProjectTasks(project._id);
-      setTasks(projectTasks);
+      const data = await getProjectTasks(project._id);
+      // Enhance tasks with project data
+      const enhancedTasks = enhanceTasksWithProjectData(data);
+      console.log('Fetched tasks:', enhancedTasks);
+      setTasks(enhancedTasks);
       setError(null);
     } catch (err) {
-      setError('Failed to fetch tasks');
+      setError('Failed to load tasks');
       console.error(err);
     } finally {
       setLoading(false);
@@ -91,19 +107,32 @@ function Kanban({ project, isOwner }) {
   }, [project._id, socket]);
   
   const handleDragStart = (e, taskId) => {
+    const task = tasks.find(t => t._id === taskId);
+    console.log('Drag started for task:', task);
+    
+    // Add the task ID as data
     e.dataTransfer.setData('taskId', taskId);
+    
+    // Give visual feedback
+    e.dataTransfer.effectAllowed = 'move';
   };
   
   const handleDragOver = (e) => {
     e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
   };
   
   const handleDrop = async (e, status) => {
     e.preventDefault();
     const taskId = e.dataTransfer.getData('taskId');
     
+    if (!taskId) return;
+    
+    console.log(`Attempting to move task ${taskId} to ${status}`);
+    
     try {
       await updateTaskStatus(taskId, status);
+      console.log('Status updated successfully');
       fetchTasks();
     } catch (err) {
       console.error('Error moving task:', err);

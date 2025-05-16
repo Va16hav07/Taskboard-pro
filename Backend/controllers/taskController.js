@@ -4,6 +4,7 @@ import User from '../models/userModel.js';
 import { processTaskAutomations } from '../services/automationService.js';
 import { getIO } from '../websocket/socketServer.js';
 import { sendTaskAssignment } from '../services/emailService.js';
+import { isAuthorizedForTask } from '../utils/taskUtils.js';
 
 // Create a new task
 export const createTask = async (req, res) => {
@@ -263,6 +264,8 @@ export const updateTaskStatus = async (req, res) => {
     const { status } = req.body;
     const { uid } = req.user;
     
+    console.log(`User ${uid} attempting to update task ${taskId} to status: ${status}`);
+    
     const task = await Task.findById(taskId);
     if (!task) {
       return res.status(404).json({ message: 'Task not found' });
@@ -274,14 +277,15 @@ export const updateTaskStatus = async (req, res) => {
       return res.status(404).json({ message: 'Project not found' });
     }
     
-    // Check if user is the task assignee or a project owner
-    const userMember = project.members.find(member => member.userId === uid);
-    const isProjectOwner = userMember && userMember.role === 'owner';
-    const isTaskAssignee = task.assignee && task.assignee.userId === uid;
-    
-    if (!isProjectOwner && !isTaskAssignee) {
+    // Check authorization
+    if (!isAuthorizedForTask(task, project, uid)) {
+      console.log('Authorization failed. Task details:', {
+        assignee: task.assignee,
+        projectMembers: project.members
+      });
+      
       return res.status(403).json({ 
-        message: 'Access denied. Only the task assignee or project owner can change task status.' 
+        message: 'Access denied. Only the task assignee or project owner can change task status.'
       });
     }
     
@@ -300,6 +304,7 @@ export const updateTaskStatus = async (req, res) => {
     task.updatedAt = Date.now();
     
     await task.save();
+    console.log(`Task ${taskId} status updated to ${status}`);
     
     // Process automations
     await processTaskAutomations(task, previousTask);

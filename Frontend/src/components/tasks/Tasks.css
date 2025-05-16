@@ -151,6 +151,15 @@
   border-radius: 4px;
 }
 
+.assigned-to-me {
+  background-color: #d1fae5;
+  color: #065f46;
+  border-radius: 50%;
+  margin-left: 4px;
+  padding: 0 3px;
+  font-size: 0.8em;
+}
+
 /* Task Detail Modal */
 .task-detail-modal {
   max-width: 600px;

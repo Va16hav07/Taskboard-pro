@@ -10,11 +10,28 @@ function TaskCard({ task, onTaskUpdated, onDragStart, onClick }) {
   
   // Check if current user can move this task (owner or assignee)
   const canMoveTask = () => {
-    const isOwner = task.project?.members?.some(
-      member => member.userId === currentUser?.uid && member.role === 'owner'
-    );
-    const isAssignee = task.assignee && task.assignee.userId === currentUser?.uid;
-    return isOwner || isAssignee;
+    if (!currentUser) return false;
+    
+    // User is assigned this task
+    if (task.assignee && task.assignee.userId === currentUser.uid) {
+      console.log("Can move: User is assignee");
+      return true;
+    }
+    
+    // User is project owner
+    if (task.project && task.project.members) {
+      const isOwner = task.project.members.some(
+        member => member.userId === currentUser.uid && member.role === 'owner'
+      );
+      
+      if (isOwner) {
+        console.log("Can move: User is project owner");
+        return true;
+      }
+    }
+    
+    console.log("Cannot move: User is neither assignee nor owner");
+    return false;
   };
   
   const formatDate = (dateString) => {
@@ -38,7 +55,10 @@ function TaskCard({ task, onTaskUpdated, onDragStart, onClick }) {
   };
   
   const handleDragStart = (e) => {
-    if (canMoveTask()) {
+    const canMove = canMoveTask();
+    console.log(`Task ${task._id} draggable: ${canMove}`);
+    
+    if (canMove) {
       onDragStart(e, task._id);
     } else {
       e.preventDefault();
@@ -69,6 +89,9 @@ function TaskCard({ task, onTaskUpdated, onDragStart, onClick }) {
           {task.assignee?.email && (
             <span className="assignee">
               {task.assignee.email.split('@')[0]}
+              {task.assignee.userId === currentUser?.uid && 
+                <span className="assigned-to-me" title="Assigned to me"> ✓</span>
+              }
             </span>
           )}
         </div>
@@ -77,7 +100,6 @@ function TaskCard({ task, onTaskUpdated, onDragStart, onClick }) {
       {showDetailModal && !onClick && (
         <TaskDetailModal
           task={task}
-          project={task.project}
           onClose={() => setShowDetailModal(false)}
           onTaskUpdated={handleTaskUpdated}
         />
