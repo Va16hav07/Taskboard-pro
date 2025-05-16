@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { createTask } from '../../services/taskService';
+import Modal from '../common/Modal';
 import './Tasks.css';
 
 function NewTaskModal({ project, onClose, onTaskCreated }) {
@@ -32,108 +33,111 @@ function NewTaskModal({ project, onClose, onTaskCreated }) {
       onTaskCreated();
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to create task');
-    } finally {
       setIsSubmitting(false);
     }
   };
   
+  const modalFooter = (
+    <>
+      <button 
+        type="button" 
+        className="modal-secondary-btn" 
+        onClick={onClose}
+        disabled={isSubmitting}
+      >
+        Cancel
+      </button>
+      <button 
+        type="button"
+        onClick={handleSubmit}
+        className="modal-primary-btn" 
+        disabled={isSubmitting}
+      >
+        {isSubmitting ? 'Creating...' : 'Create Task'}
+      </button>
+    </>
+  );
+  
   return (
-    <div className="modal-overlay">
-      <div className="modal-content">
-        <div className="modal-header">
-          <h2>Create New Task</h2>
-          <button className="close-btn" onClick={onClose}>&times;</button>
+    <Modal
+      isOpen={true}
+      onClose={onClose}
+      title="Create New Task"
+      size="medium"
+      footer={modalFooter}
+    >
+      <form id="new-task-form">
+        {error && <div className="error-message">{error}</div>}
+        
+        <div className="form-group">
+          <label htmlFor="title">Task Title *</label>
+          <input
+            type="text"
+            id="title"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="Enter task title"
+            required
+            autoFocus
+          />
         </div>
         
-        <form onSubmit={handleSubmit}>
-          {error && <div className="error-message">{error}</div>}
-          
+        <div className="form-group">
+          <label htmlFor="description">Description</label>
+          <textarea
+            id="description"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="Enter task description"
+            rows={4}
+          ></textarea>
+        </div>
+        
+        <div className="form-row">
           <div className="form-group">
-            <label htmlFor="title">Task Title *</label>
-            <input
-              type="text"
-              id="title"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="Enter task title"
-              required
-            />
-          </div>
-          
-          <div className="form-group">
-            <label htmlFor="description">Description</label>
-            <textarea
-              id="description"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Enter task description"
-              rows={4}
-            ></textarea>
-          </div>
-          
-          <div className="form-row">
-            <div className="form-group">
-              <label htmlFor="status">Status</label>
-              <select
-                id="status"
-                value={status}
-                onChange={(e) => setStatus(e.target.value)}
-              >
-                {project.statuses.map(statusOption => (
-                  <option key={statusOption} value={statusOption}>
-                    {statusOption}
-                  </option>
-                ))}
-              </select>
-            </div>
-            
-            <div className="form-group">
-              <label htmlFor="dueDate">Due Date</label>
-              <input
-                type="date"
-                id="dueDate"
-                value={dueDate}
-                onChange={(e) => setDueDate(e.target.value)}
-              />
-            </div>
-          </div>
-          
-          <div className="form-group">
-            <label htmlFor="assignee">Assignee (Email)</label>
+            <label htmlFor="status">Status</label>
             <select
-              id="assignee"
-              value={assignee}
-              onChange={(e) => setAssignee(e.target.value)}
+              id="status"
+              value={status}
+              onChange={(e) => setStatus(e.target.value)}
             >
-              <option value="">Unassigned</option>
-              {project.members.map(member => (
-                <option key={member.email} value={member.email}>
-                  {member.email}
+              {project.statuses.map(statusOption => (
+                <option key={statusOption} value={statusOption}>
+                  {statusOption}
                 </option>
               ))}
             </select>
           </div>
           
-          <div className="modal-actions">
-            <button 
-              type="button" 
-              className="cancel-btn" 
-              onClick={onClose}
-              disabled={isSubmitting}
-            >
-              Cancel
-            </button>
-            <button 
-              type="submit" 
-              className="submit-btn" 
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? 'Creating...' : 'Create Task'}
-            </button>
+          <div className="form-group">
+            <label htmlFor="dueDate">Due Date</label>
+            <input
+              type="date"
+              id="dueDate"
+              value={dueDate}
+              onChange={(e) => setDueDate(e.target.value)}
+              min={new Date().toISOString().split('T')[0]}
+            />
           </div>
-        </form>
-      </div>
-    </div>
+        </div>
+        
+        <div className="form-group">
+          <label htmlFor="assignee">Assignee (Email)</label>
+          <select
+            id="assignee"
+            value={assignee}
+            onChange={(e) => setAssignee(e.target.value)}
+          >
+            <option value="">Unassigned</option>
+            {project.members.map(member => (
+              <option key={member.email} value={member.email}>
+                {member.email}
+              </option>
+            ))}
+          </select>
+        </div>
+      </form>
+    </Modal>
   );
 }
 

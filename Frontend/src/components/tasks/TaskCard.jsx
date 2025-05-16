@@ -14,7 +14,6 @@ function TaskCard({ task, onTaskUpdated, onDragStart, onClick }) {
     
     // User is assigned this task
     if (task.assignee && task.assignee.userId === currentUser.uid) {
-      console.log("Can move: User is assignee");
       return true;
     }
     
@@ -25,12 +24,10 @@ function TaskCard({ task, onTaskUpdated, onDragStart, onClick }) {
       );
       
       if (isOwner) {
-        console.log("Can move: User is project owner");
         return true;
       }
     }
     
-    console.log("Cannot move: User is neither assignee nor owner");
     return false;
   };
   
@@ -56,24 +53,45 @@ function TaskCard({ task, onTaskUpdated, onDragStart, onClick }) {
   
   const handleDragStart = (e) => {
     const canMove = canMoveTask();
-    console.log(`Task ${task._id} draggable: ${canMove}`);
     
     if (canMove) {
+      // Add a visual indication of dragging
+      e.currentTarget.classList.add('dragging');
       onDragStart(e, task._id);
     } else {
       e.preventDefault();
     }
   };
   
+  const handleDragEnd = (e) => {
+    e.currentTarget.classList.remove('dragging');
+  };
+  
+  // Determine if task is overdue
+  const isOverdue = () => {
+    if (!task.dueDate) return false;
+    const now = new Date();
+    const dueDate = new Date(task.dueDate);
+    return dueDate < now && task.status !== 'Done';
+  };
+  
   return (
     <>
       <div 
-        className={`task-card ${canMoveTask() ? 'draggable' : ''}`}
+        className={`task-card 
+          ${canMoveTask() ? 'draggable' : ''} 
+          ${isOverdue() ? 'overdue' : ''} 
+          ${task.isUrgent ? 'urgent' : ''}
+        `}
         draggable={canMoveTask()}
         onDragStart={handleDragStart}
+        onDragEnd={handleDragEnd}
         onClick={handleClick}
       >
-        <h4 className="task-title">{task.title}</h4>
+        <h4 className="task-title">
+          {task.isUrgent && <span className="priority-indicator" title="Urgent">⚠️ </span>}
+          {task.title}
+        </h4>
         
         {task.description && (
           <p className="task-description">{task.description.substring(0, 50)}
@@ -83,16 +101,34 @@ function TaskCard({ task, onTaskUpdated, onDragStart, onClick }) {
         
         <div className="task-meta">
           {task.dueDate && (
-            <span className="due-date">Due {formatDate(task.dueDate)}</span>
+            <span className={`due-date ${isOverdue() ? 'overdue' : ''}`}>
+              <span className="due-date-icon">{isOverdue() ? '⚠️' : '🕒'}</span>
+              <span className="due-date-text">
+                {isOverdue() ? 'Overdue ' : 'Due '}
+                {formatDate(task.dueDate)}
+              </span>
+            </span>
           )}
           
           {task.assignee?.email && (
             <span className="assignee">
               {task.assignee.email.split('@')[0]}
               {task.assignee.userId === currentUser?.uid && 
-                <span className="assigned-to-me" title="Assigned to me"> ✓</span>
+                <span className="assigned-to-me" title="Assigned to me">✓</span>
               }
             </span>
+          )}
+        </div>
+        
+        {/* Quick actions buttons that appear on hover */}
+        <div className="task-actions">
+          {canMoveTask() && (
+            <>
+              <button className="task-action-btn" title="Edit task">✏️</button>
+              {task.assignee?.userId !== currentUser?.uid && (
+                <button className="task-action-btn" title="Assign to me">👤</button>
+              )}
+            </>
           )}
         </div>
       </div>

@@ -4,12 +4,14 @@ import { useSocket } from '../../context/SocketContext';
 import { getTaskComments } from '../../services/commentService';
 import CommentItem from './CommentItem';
 import CommentForm from './CommentForm';
+import Toggle from '../common/Toggle';
 import './Comments.css';
 
 function CommentList({ taskId, projectId }) {
   const [comments, setComments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [showRealTime, setShowRealTime] = useState(true); // Toggle for real-time updates
   const { currentUser } = useAuth();
   const { socket } = useSocket();
 
@@ -31,7 +33,7 @@ function CommentList({ taskId, projectId }) {
     fetchComments();
     
     // Listen for real-time comment updates
-    if (socket) {
+    if (socket && showRealTime) {
       socket.on('comment-added', (data) => {
         if (data.taskId === taskId) {
           setComments(prev => [...prev, data.comment]);
@@ -51,7 +53,7 @@ function CommentList({ taskId, projectId }) {
         socket.off('comment-deleted');
       }
     };
-  }, [taskId, socket]);
+  }, [taskId, socket, showRealTime]);
 
   const handleCommentAdded = (newComment) => {
     setComments([...comments, newComment]);
@@ -67,7 +69,15 @@ function CommentList({ taskId, projectId }) {
 
   return (
     <div className="comments-container">
-      <h3 className="comments-header">Comments ({comments.length})</h3>
+      <div className="comments-header">
+        <h3>Comments <span className="comments-counter">{comments.length}</span></h3>
+        <Toggle 
+          checked={showRealTime}
+          onChange={(e) => setShowRealTime(e.target.checked)}
+          label="Real-time updates"
+          id="comments-realtime-toggle"
+        />
+      </div>
       
       {error && <div className="comment-error">{error}</div>}
       
