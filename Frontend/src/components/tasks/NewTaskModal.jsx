@@ -8,8 +8,10 @@ function NewTaskModal({ project, onClose, onTaskCreated }) {
   const [description, setDescription] = useState('');
   const [status, setStatus] = useState(project.statuses[0]);
   const [assignee, setAssignee] = useState('');
+  const [assigneeName, setAssigneeName] = useState('');
   const [dueDate, setDueDate] = useState('');
   const [isUrgent, setIsUrgent] = useState(false);
+  const [priority, setPriority] = useState('');
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   
@@ -29,13 +31,34 @@ function NewTaskModal({ project, onClose, onTaskCreated }) {
         projectId: project._id,
         status,
         assignee,
+        assigneeName,  // Include the assignee name 
         dueDate: dueDate || undefined,
-        isUrgent
+        isUrgent,
+        priority
       });
       onTaskCreated();
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to create task');
       setIsSubmitting(false);
+    }
+  };
+
+  // Handle assignee change - extract name from members
+  const handleAssigneeChange = (e) => {
+    const email = e.target.value;
+    setAssignee(email);
+    
+    if (email) {
+      // Find the member with this email to get their name
+      const selectedMember = project.members.find(member => member.email === email);
+      if (selectedMember && selectedMember.name) {
+        setAssigneeName(selectedMember.name);
+      } else {
+        // If no name available, use the email local part
+        setAssigneeName(email.split('@')[0]);
+      }
+    } else {
+      setAssigneeName('');
     }
   };
   
@@ -148,33 +171,37 @@ function NewTaskModal({ project, onClose, onTaskCreated }) {
           </div>
         </div>
         
-        <div className="form-group">
-          <label htmlFor="assignee">Assignee</label>
-          <select
-            id="assignee"
-            value={assignee}
-            onChange={(e) => setAssignee(e.target.value)}
-          >
-            <option value="">Unassigned</option>
-            {project.members.map(member => (
-              <option key={member.email} value={member.email}>
-                {member.email}
-              </option>
-            ))}
-          </select>
-          <small className="text-muted">The assigned person will receive a notification</small>
-        </div>
-        
-        <div className="toggle-container">
-          <input
-            type="checkbox"
-            id="isUrgent"
-            checked={isUrgent}
-            onChange={(e) => setIsUrgent(e.target.checked)}
-          />
-          <label htmlFor="isUrgent" className="ml-2 text-sm">
-            Mark as urgent
-          </label>
+        <div className="form-row">
+          <div className="form-group">
+            <label htmlFor="assignee">Assignee</label>
+            <select
+              id="assignee"
+              value={assignee}
+              onChange={handleAssigneeChange}
+            >
+              <option value="">Unassigned</option>
+              {project.members.map(member => (
+                <option key={member.email} value={member.email}>
+                  {member.name || member.email.split('@')[0]} ({member.email})
+                </option>
+              ))}
+            </select>
+            <small className="text-muted">The assigned person will receive a notification</small>
+          </div>
+          
+          <div className="form-group">
+            <label htmlFor="priority">Priority</label>
+            <select
+              id="priority"
+              value={priority}
+              onChange={(e) => setPriority(e.target.value)}
+            >
+              <option value="">Normal</option>
+              <option value="low">Low</option>
+              <option value="medium">Medium</option>
+              <option value="high">High</option>
+            </select>
+          </div>
         </div>
       </form>
     </Modal>

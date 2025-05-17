@@ -104,11 +104,25 @@ function TaskCard({ task, onTaskUpdated, onDragStart, onClick }) {
     // Otherwise use email without domain as fallback
     return assignee.email ? assignee.email.split('@')[0] : 'Unknown';
   };
+
+  // Get priority class and label
+  const getPriorityClass = () => {
+    switch(task.priority) {
+      case 'high': return 'priority-high';
+      case 'medium': return 'priority-medium';
+      case 'low': return 'priority-low';
+      default: return '';
+    }
+  };
+  
+  const getPriorityLabel = () => {
+    return task.priority ? task.priority.charAt(0).toUpperCase() + task.priority.slice(1) : 'Normal';
+  };
   
   return (
     <>
       <div 
-        className={`task-card ${canMoveTask() ? 'draggable' : ''} ${task.isUrgent ? 'urgent' : ''}`}
+        className={`task-card ${canMoveTask() ? 'draggable' : ''} ${task.isUrgent ? 'urgent' : ''} ${getPriorityClass()}`}
         draggable={canMoveTask()}
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
@@ -149,6 +163,12 @@ function TaskCard({ task, onTaskUpdated, onDragStart, onClick }) {
               {task.assignee.userId === currentUser?.uid && (
                 <span className="assigned-to-me" title="Assigned to me">✓</span>
               )}
+            </div>
+          )}
+          
+          {task.priority && (
+            <div className={`priority-badge ${getPriorityClass()}`}>
+              {getPriorityLabel()}
             </div>
           )}
         </div>

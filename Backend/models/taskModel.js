@@ -10,15 +10,15 @@ const taskSchema = new mongoose.Schema({
     type: String,
     trim: true
   },
+  status: {
+    type: String,
+    required: true,
+    trim: true
+  },
   projectId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Project',
     required: true
-  },
-  status: {
-    type: String,
-    required: true,
-    default: 'To Do'
   },
   assignee: {
     userId: {
@@ -26,11 +26,25 @@ const taskSchema = new mongoose.Schema({
       ref: 'User'
     },
     email: {
-      type: String
+      type: String,
+      trim: true
+    },
+    name: {
+      type: String,
+      trim: true
     }
   },
   dueDate: {
     type: Date
+  },
+  isUrgent: {
+    type: Boolean,
+    default: false
+  },
+  priority: {
+    type: String,
+    enum: ['', 'low', 'medium', 'high'],
+    default: ''
   },
   createdBy: {
     type: String,

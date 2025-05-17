@@ -16,6 +16,7 @@ interface Task {
   dueDate?: string;
   assignee?: TaskAssignee;
   isUrgent?: boolean;
+  priority?: string; // Add priority field
   createdAt: string;
   updatedAt: string;
 }
@@ -49,6 +50,20 @@ const TaskCard: React.FC<TaskCardProps> = ({
   const isOverdue = () => {
     if (!task.dueDate) return false;
     return new Date(task.dueDate) < new Date() && task.status !== 'Done';
+  };
+  
+  // Get priority class and label
+  const getPriorityClass = () => {
+    switch(task.priority) {
+      case 'high': return 'priority-high';
+      case 'medium': return 'priority-medium';
+      case 'low': return 'priority-low';
+      default: return '';
+    }
+  };
+  
+  const getPriorityLabel = () => {
+    return task.priority ? task.priority.charAt(0).toUpperCase() + task.priority.slice(1) : '';
   };
   
   // Generate avatar color based on name or email
@@ -92,7 +107,7 @@ const TaskCard: React.FC<TaskCardProps> = ({
   
   return (
     <div 
-      className={`task-card ${isDraggable ? 'draggable' : ''} ${task.isUrgent ? 'urgent' : ''} ${isDragging ? 'dragging' : ''}`}
+      className={`task-card ${isDraggable ? 'draggable' : ''} ${task.isUrgent ? 'urgent' : ''} ${isDragging ? 'dragging' : ''} ${getPriorityClass()}`}
       style={{ '--animation-order': animationOrder } as React.CSSProperties}
       draggable={isDraggable}
       onDragStart={handleDragStart}
@@ -130,6 +145,12 @@ const TaskCard: React.FC<TaskCardProps> = ({
             {task.assignee.userId === currentUserId && (
               <span className="assigned-to-me" title="Assigned to me">✓</span>
             )}
+          </div>
+        )}
+        
+        {task.priority && (
+          <div className={`priority-badge ${getPriorityClass()}`}>
+            {getPriorityLabel()}
           </div>
         )}
       </div>

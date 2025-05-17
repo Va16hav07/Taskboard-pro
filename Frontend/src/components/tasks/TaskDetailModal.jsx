@@ -14,10 +14,12 @@ function TaskDetailModal({ task, onClose, onTaskUpdated }) {
   const [description, setDescription] = useState(task.description || '');
   const [status, setStatus] = useState(task.status);
   const [assignee, setAssignee] = useState(task.assignee?.email || '');
+  const [assigneeName, setAssigneeName] = useState(task.assignee?.name || '');
   const [dueDate, setDueDate] = useState(
     task.dueDate ? new Date(task.dueDate).toISOString().split('T')[0] : ''
   );
   const [isUrgent, setIsUrgent] = useState(task.isUrgent || false);
+  const [priority, setPriority] = useState(task.priority || '');
   
   const [error, setError] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -31,10 +33,12 @@ function TaskDetailModal({ task, onClose, onTaskUpdated }) {
     setDescription(task.description || '');
     setStatus(task.status);
     setAssignee(task.assignee?.email || '');
+    setAssigneeName(task.assignee?.name || '');
     setDueDate(
       task.dueDate ? new Date(task.dueDate).toISOString().split('T')[0] : ''
     );
     setIsUrgent(task.isUrgent || false);
+    setPriority(task.priority || '');
     setIsEditing(false);
     setError(null);
   }, [task]);
@@ -54,6 +58,25 @@ function TaskDetailModal({ task, onClose, onTaskUpdated }) {
   const canChangeTaskStatus = () => {
     return isProjectOwner() || isAssignee();
   };
+
+  // Handle assignee change - extract name from members
+  const handleAssigneeChange = (e) => {
+    const email = e.target.value;
+    setAssignee(email);
+    
+    if (email) {
+      // Find the member with this email to get their name
+      const selectedMember = task.project.members.find(member => member.email === email);
+      if (selectedMember && selectedMember.name) {
+        setAssigneeName(selectedMember.name);
+      } else {
+        // If no name available, use the email local part
+        setAssigneeName(email.split('@')[0]);
+      }
+    } else {
+      setAssigneeName('');
+    }
+  };
   
   const handleSave = async (e) => {
     e.preventDefault();
@@ -70,8 +93,10 @@ function TaskDetailModal({ task, onClose, onTaskUpdated }) {
         description,
         status,
         assignee,
+        assigneeName,
         dueDate: dueDate || undefined,
-        isUrgent
+        isUrgent,
+        priority
       });
       
       setIsEditing(false);
@@ -127,6 +152,20 @@ function TaskDetailModal({ task, onClose, onTaskUpdated }) {
         {isOverdue && <span className="overdue-badge">Overdue</span>}
       </span>
     );
+  };
+
+  // Get priority class and label
+  const getPriorityClass = () => {
+    switch(priority) {
+      case 'high': return 'priority-high';
+      case 'medium': return 'priority-medium';
+      case 'low': return 'priority-low';
+      default: return '';
+    }
+  };
+  
+  const getPriorityLabel = () => {
+    return priority ? priority.charAt(0).toUpperCase() + priority.slice(1) : 'Normal';
   };
 
   // Generate avatar color based on email
@@ -244,6 +283,11 @@ function TaskDetailModal({ task, onClose, onTaskUpdated }) {
           <div className="task-modal-title">
             <span>{task.title}</span>
             {task.isUrgent && <span className="task-urgent-flag">Urgent</span>}
+            {task.priority && (
+              <span className={`task-priority-flag ${getPriorityClass()}`}>
+                {getPriorityLabel()}
+              </span>
+            )}
           </div>
         )
       }
@@ -319,32 +363,37 @@ function TaskDetailModal({ task, onClose, onTaskUpdated }) {
               </div>
             </div>
             
-            <div className="form-group">
-              <label htmlFor="assignee">Assignee</label>
-              <select
-                id="assignee"
-                value={assignee}
-                onChange={(e) => setAssignee(e.target.value)}
-                className="task-select"
-              >
-                <option value="">Unassigned</option>
-                {task.project.members.map(member => (
-                  <option key={member.email} value={member.email}>
-                    {member.email}
-                  </option>
-                ))}
-              </select>
-            </div>
-            
-            <div className="form-group checkbox-group">
-              <div className="checkbox-item">
-                <input
-                  type="checkbox"
-                  id="isUrgent"
-                  checked={isUrgent}
-                  onChange={(e) => setIsUrgent(e.target.checked)}
-                />
-                <label htmlFor="isUrgent">Mark as urgent</label>
+            <div className="form-row">
+              <div className="form-group">
+                <label htmlFor="assignee">Assignee</label>
+                <select
+                  id="assignee"
+                  value={assignee}
+                  onChange={handleAssigneeChange}
+                  className="task-select"
+                >
+                  <option value="">Unassigned</option>
+                  {task.project.members.map(member => (
+                    <option key={member.email} value={member.email}>
+                      {member.name || member.email.split('@')[0]} ({member.email})
+                    </option>
+                  ))}
+                </select>
+              </div>
+              
+              <div className="form-group">
+                <label htmlFor="priority">Priority</label>
+                <select
+                  id="priority"
+                  value={priority}
+                  onChange={(e) => setPriority(e.target.value)}
+                  className="task-select"
+                >
+                  <option value="">Normal</option>
+                  <option value="low">Low</option>
+                  <option value="medium">Medium</option>
+                  <option value="high">High</option>
+                </select>
               </div>
             </div>
           </form>
@@ -394,12 +443,15 @@ function TaskDetailModal({ task, onClose, onTaskUpdated }) {
                     <div className="assignee-info">
                       <div 
                         className="assignee-avatar"
-                        style={{ backgroundColor: getAvatarColor(task.assignee.email) }}
+                        style={{ backgroundColor: getAvatarColor(task.assignee.name || task.assignee.email) }}
                       >
-                        {task.assignee.email.charAt(0).toUpperCase()}
+                        {(task.assignee.name || task.assignee.email.charAt(0)).toUpperCase()}
                       </div>
                       <span className="assignee-email">
-                        {task.assignee.email}
+                        {getDisplayName(task.assignee)}
+                        <span className="assignee-email-detail">
+                          ({task.assignee.email})
+                        </span>
                         {task.assignee.userId === currentUser?.uid && (
                           <span className="assigned-to-me-tag">You</span>
                         )}
@@ -408,6 +460,15 @@ function TaskDetailModal({ task, onClose, onTaskUpdated }) {
                   ) : (
                     <span className="unassigned">Unassigned</span>
                   )}
+                </span>
+              </div>
+              
+              <div className="task-meta-item">
+                <span className="meta-label">Priority</span>
+                <span className="meta-value">
+                  <span className={`priority-indicator ${getPriorityClass()}`}>
+                    {getPriorityLabel()}
+                  </span>
                 </span>
               </div>
               

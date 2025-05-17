@@ -9,7 +9,7 @@ import { isAuthorizedForTask } from '../utils/taskUtils.js';
 // Create a new task
 export const createTask = async (req, res) => {
   try {
-    const { title, description, projectId, status, assignee, dueDate } = req.body;
+    const { title, description, projectId, status, assignee, assigneeName, dueDate, priority, isUrgent } = req.body;
     const { uid } = req.user;
     
     // Verify that the project exists
@@ -44,7 +44,8 @@ export const createTask = async (req, res) => {
       
       assigneeData = {
         userId: assigneeMember.userId,
-        email: assigneeMember.email
+        email: assigneeMember.email,
+        name: assigneeName || assigneeMember.name || assignee.split('@')[0]
       };
     }
     
@@ -55,6 +56,8 @@ export const createTask = async (req, res) => {
       status: status || project.statuses[0], // Default to first status if not provided
       assignee: assigneeData,
       dueDate,
+      isUrgent: isUrgent || false,
+      priority: priority || '',
       createdBy: uid
     });
     
@@ -157,7 +160,7 @@ export const getTaskById = async (req, res) => {
 export const updateTask = async (req, res) => {
   try {
     const { taskId } = req.params;
-    const { title, description, status, assignee, dueDate } = req.body;
+    const { title, description, status, assignee, assigneeName, dueDate, isUrgent, priority } = req.body;
     const { uid } = req.user;
     
     const task = await Task.findById(taskId);
@@ -191,6 +194,7 @@ export const updateTask = async (req, res) => {
     if (title) task.title = title;
     if (description !== undefined) task.description = description;
     if (status) task.status = status;
+    if (priority !== undefined) task.priority = priority;
     
     // Handle assignee update
     let newAssigneeData = null;
@@ -205,7 +209,8 @@ export const updateTask = async (req, res) => {
         
         newAssigneeData = {
           userId: assigneeMember.userId,
-          email: assigneeMember.email
+          email: assigneeMember.email,
+          name: assigneeName || assigneeMember.name || assignee.split('@')[0]
         };
         task.assignee = newAssigneeData;
       } else {
@@ -214,6 +219,7 @@ export const updateTask = async (req, res) => {
     }
     
     if (dueDate !== undefined) task.dueDate = dueDate;
+    if (isUrgent !== undefined) task.isUrgent = isUrgent;
     task.updatedAt = Date.now();
     
     await task.save();

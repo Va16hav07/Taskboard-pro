@@ -726,6 +726,49 @@ select {
   height: 16px;
 }
 
+/* Priority badge styles */
+.priority-badge {
+  padding: 3px 8px;
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  text-transform: capitalize;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.priority-high {
+  background-color: rgba(220, 38, 38, 0.1);
+  color: #dc2626;
+  border: 1px solid rgba(220, 38, 38, 0.2);
+}
+
+.priority-medium {
+  background-color: rgba(245, 158, 11, 0.1);
+  color: #d97706;
+  border: 1px solid rgba(245, 158, 11, 0.2);
+}
+
+.priority-low {
+  background-color: rgba(16, 185, 129, 0.1);
+  color: #059669;
+  border: 1px solid rgba(16, 185, 129, 0.2);
+}
+
+/* Priority for task card borders */
+.task-card.priority-high {
+  border-top: 3px solid #dc2626;
+}
+
+.task-card.priority-medium {
+  border-top: 3px solid #d97706;
+}
+
+.task-card.priority-low {
+  border-top: 3px solid #059669;
+}
+
 /* Dark mode support */
 @media (prefers-color-scheme: dark) {
   .kanban-column {
@@ -845,5 +888,23 @@ select {
     background-color: rgba(239, 68, 68, 0.1);
     color: var(--color-error-light);
     border-left-color: var(--color-error);
+  }
+
+  .priority-high {
+    background-color: rgba(239, 68, 68, 0.15);
+    color: #ef4444;
+    border: 1px solid rgba(239, 68, 68, 0.3);
+  }
+  
+  .priority-medium {
+    background-color: rgba(245, 158, 11, 0.15);
+    color: #f59e0b;
+    border: 1px solid rgba(245, 158, 11, 0.3);
+  }
+  
+  .priority-low {
+    background-color: rgba(16, 185, 129, 0.15);
+    color: #10b981;
+    border: 1px solid rgba(16, 185, 129, 0.3);
   }
 }
