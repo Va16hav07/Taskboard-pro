@@ -8,6 +8,91 @@
   min-height: 50vh;
   width: 100%;
   padding: 2rem;
+  flex-direction: column;
+  text-align: center;
+  padding: 40px;
+  min-height: 300px;
+}
+
+.loading-page.large {
+  min-height: 70vh;
+}
+
+.loading-page.small {
+  min-height: 150px;
+}
+
+.spinner-container {
+  margin-bottom: 24px;
+}
+
+.spinner {
+  width: 50px;
+  height: 50px;
+  position: relative;
+}
+
+.loading-page.small .spinner {
+  width: 30px;
+  height: 30px;
+}
+
+.loading-page.large .spinner {
+  width: 70px;
+  height: 70px;
+}
+
+.spinner-svg {
+  animation: rotate 2s linear infinite;
+  transform-origin: center center;
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+.spinner-path {
+  stroke: #7c3aed;
+  stroke-dasharray: 150, 200;
+  stroke-dashoffset: -10;
+  animation: dash 1.5s ease-in-out infinite;
+  stroke-linecap: round;
+}
+
+@keyframes rotate {
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes dash {
+  0% {
+    stroke-dasharray: 1, 200;
+    stroke-dashoffset: 0;
+  }
+  50% {
+    stroke-dasharray: 89, 200;
+    stroke-dashoffset: -35;
+  }
+  100% {
+    stroke-dasharray: 89, 200;
+    stroke-dashoffset: -124;
+  }
+}
+
+.loading-message {
+  color: #4b5563;
+  font-size: 1rem;
+  font-weight: 500;
+}
+
+.loading-page.large .loading-message {
+  font-size: 1.25rem;
+}
+
+.loading-page.small .loading-message {
+  font-size: 0.875rem;
 }
 
 .loading-spinner-container {
@@ -51,6 +136,31 @@
   min-height: 50vh;
   width: 100%;
   padding: 2rem;
+  flex-direction: column;
+  text-align: center;
+  padding: 40px;
+  min-height: 300px;
+  background-color: #f9fafb;
+  border-radius: 12px;
+  margin: 20px auto;
+  max-width: 600px;
+}
+
+.error-icon {
+  display: inline-block;
+  width: 64px;
+  height: 64px;
+  margin-bottom: 1.5rem;
+  color: var(--color-error, #dc2626);
+  width: 60px;
+  height: 60px;
+  color: #ef4444;
+  margin-bottom: 24px;
+}
+
+.error-icon svg {
+  width: 100%;
+  height: 100%;
 }
 
 .error-container {
@@ -60,19 +170,6 @@
   border-radius: 12px;
   background-color: white;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-}
-
-.error-icon {
-  display: inline-block;
-  width: 64px;
-  height: 64px;
-  margin-bottom: 1.5rem;
-  color: var(--color-error, #dc2626);
-}
-
-.error-icon svg {
-  width: 100%;
-  height: 100%;
 }
 
 .error-container h2 {
@@ -86,6 +183,63 @@
   color: var(--color-gray-600, #475569);
   margin-bottom: 1.5rem;
   line-height: 1.6;
+}
+
+.error-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #1f2937;
+  margin-bottom: 12px;
+}
+
+.error-details {
+  color: #6b7280;
+  max-width: 400px;
+  margin-bottom: 24px;
+  line-height: 1.5;
+}
+
+.error-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.retry-btn, .back-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-weight: 500;
+  transition: all 0.2s;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.retry-btn {
+  background-color: #7c3aed;
+  color: white;
+  border: none;
+}
+
+.retry-btn:hover {
+  background-color: #6d28d9;
+}
+
+.back-btn {
+  background-color: #f3f4f6;
+  color: #4b5563;
+  border: 1px solid #e5e7eb;
+}
+
+.back-btn:hover {
+  background-color: #e5e7eb;
+}
+
+.retry-btn svg, .back-btn svg {
+  width: 18px;
+  height: 18px;
 }
 
 .retry-button {
@@ -154,6 +308,35 @@
   color: white;
 }
 
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .error-page {
+    background-color: #1f2937;
+  }
+  
+  .error-title {
+    color: #f9fafb;
+  }
+  
+  .error-details {
+    color: #d1d5db;
+  }
+  
+  .loading-message {
+    color: #d1d5db;
+  }
+
+  .back-btn {
+    background-color: #374151;
+    color: #d1d5db;
+    border-color: #4b5563;
+  }
+  
+  .back-btn:hover {
+    background-color: #4b5563;
+  }
+}
+
 /* Responsive adjustments */
 @media (max-width: 640px) {
   .loading-spinner-large {
@@ -169,5 +352,23 @@
   .loading-spinner-container h2,
   .error-container h2 {
     font-size: 1.25rem;
+  }
+
+  .error-page {
+    padding: 24px;
+    margin: 16px;
+  }
+  
+  .error-icon {
+    width: 50px;
+    height: 50px;
+  }
+  
+  .error-title {
+    font-size: 1.25rem;
+  }
+  
+  .error-actions {
+    flex-direction: column;
   }
 }

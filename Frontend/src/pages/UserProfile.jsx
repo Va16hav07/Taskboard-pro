@@ -1,14 +1,42 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import NotificationList from '../components/notifications/NotificationList';
 import BadgeSummary from '../components/badges/BadgeSummary';
 import BadgeList from '../components/badges/BadgeList';
+import LoadingPage from '../components/common/LoadingPage';
+import ErrorPage from '../components/common/ErrorPage';
 import { FiBell, FiAward, FiClock } from 'react-icons/fi';
 import './Pages.css';
 
 function UserProfile() {
-  const { currentUser } = useAuth();
+  const { currentUser, loading: authLoading } = useAuth();
   const [activeTab, setActiveTab] = useState('notifications');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  
+  useEffect(() => {
+    // Simulate loading user profile data
+    const loadProfile = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        // Wait for auth to complete
+        if (!authLoading && currentUser) {
+          // We could add API calls here to fetch more user data
+          // For now, just simulate a loading delay
+          await new Promise(resolve => setTimeout(resolve, 300));
+        }
+      } catch (err) {
+        setError('Failed to load user profile data');
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    loadProfile();
+  }, [currentUser, authLoading]);
+  
   const getInitials = () => {
     if (currentUser?.displayName) {
       return currentUser.displayName.split(' ')
@@ -22,10 +50,34 @@ function UserProfile() {
     return "U";
   };
 
+  if (loading || authLoading) {
+    return <LoadingPage message="Loading your profile..." />;
+  }
+
+  if (error) {
+    return (
+      <ErrorPage
+        message="Profile Error" 
+        details={error}
+        backTo={{ path: "/dashboard", label: "Return to Dashboard" }}
+      />
+    );
+  }
+
+  if (!currentUser) {
+    return (
+      <ErrorPage
+        message="Authentication Required"
+        details="You need to be logged in to view your profile."
+        backTo={{ path: "/login", label: "Go to Login" }}
+      />
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pb-10">
       <div className="relative bg-gradient-to-r from-purple-600 to-indigo-600 dark:from-purple-900 dark:to-indigo-900 pb-24">
-        <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmZmZmYiIGZpbGwtb3BhY2l0eT0iMC4xIj48cGF0aCBkPSJNMzYgMzRoLTJWMTZoLTJ2MkgxNnYyaDJ2MTRoLTJ2MmgydjJoMnYtMmgxNHYyaDJ2LTJoMnYtMmgtMnYtMTRoMnYtMmgtMnYyem0wIDJ2MTRIMjBWMjBoMTZ2MTZ6Ii8+PC9nPjwvZz48L3N2Zz4=')] opacity-[0.07]"></div>
+        <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmZmZmYiIGZpbGwtb3BhY2l0eT0iMC4xIj48cGF0aCBkPSJNMzYgMzRoLTJWMTZoLTJ2MkgxNnYyaDJ2MTRoLTJ2MmgydjJoMnYtMmgxNHYyaDJ2LTJoMnYtMmgtMnYtMTRoMnYtMmgtMnYyem0wIDJ2MTRIMjBWMjBoMTZ2MTZ6Ii8+PC9nPjwvZz48L2NvbG9yPjwvZz48L3N2Zz4=')] opacity-[0.07]"></div>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 relative">
           <h1 className="text-2xl font-bold text-white tracking-tight">
             Profile

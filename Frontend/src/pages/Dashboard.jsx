@@ -4,6 +4,8 @@ import { useAuth } from '../context/AuthContext';
 import { getUserProjects } from '../services/projectService';
 import { testAuthentication, checkToken } from '../utils/authUtils';
 import AssignedTasks from '../components/dashboard/AssignedTasks';
+import LoadingPage from '../components/common/LoadingPage';
+import ErrorPage from '../components/common/ErrorPage';
 import './Pages.css';
 
 function Dashboard() {
@@ -11,44 +13,53 @@ function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [projects, setProjects] = useState([]);
   const [authStatus, setAuthStatus] = useState(null);
+  const [error, setError] = useState(null);
+
+  const fetchDashboardData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      // Check token validity
+      const tokenStatus = checkToken();
+      setAuthStatus(tokenStatus);
+      
+      // Test authentication first
+      const authTest = await testAuthentication();
+      console.log('Auth test result:', authTest);
+      
+      if (authTest.success) {
+        const projectsData = await getUserProjects();
+        setProjects(projectsData.slice(0, 4)); // Show only the first 4 projects
+      }
+    } catch (error) {
+      console.error('Error fetching dashboard data:', error);
+      setError('We could not load your dashboard. Please try again later.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    // Check token validity
-    const tokenStatus = checkToken();
-    setAuthStatus(tokenStatus);
-    
-    async function fetchProjects() {
-      try {
-        // Test authentication first
-        const authTest = await testAuthentication();
-        console.log('Auth test result:', authTest);
-        
-        if (authTest.success) {
-          const projectsData = await getUserProjects();
-          setProjects(projectsData.slice(0, 4)); // Show only the first 4 projects
-        }
-      } catch (error) {
-        console.error('Error fetching projects:', error);
-      } finally {
-        setLoading(false);
-      }
-    }
-
     if (currentUser && token) {
-      fetchProjects();
+      fetchDashboardData();
     } else {
       setLoading(false);
     }
   }, [currentUser, token]);
 
   if (loading) {
+    return <LoadingPage message="Loading your dashboard..." />;
+  }
+
+  if (error) {
     return (
-      <div className="flex items-center justify-center h-screen bg-gradient-to-b from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
-        <div className="animate-pulse flex flex-col items-center px-4 text-center">
-          <div className="h-12 w-12 rounded-full bg-gradient-to-r from-purple-600/50 to-indigo-600/50 mb-5 animate-bounce"></div>
-          <div className="text-lg font-medium text-gray-600 dark:text-gray-400">Loading dashboard...</div>
-        </div>
-      </div>
+      <ErrorPage
+        message="Dashboard Error"
+        details={error}
+        onRetry={fetchDashboardData}
+        backTo={{ path: "/", label: "Return to Home" }}
+      />
     );
   }
 

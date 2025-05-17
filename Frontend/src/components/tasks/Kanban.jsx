@@ -1,12 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useContext } from 'react';
 import { getProjectTasks, updateTaskStatus } from '../../services/taskService';
-import TaskCard from './TaskCard';
-import NewTaskModal from './NewTaskModal';
-import EditStatusesModal from './EditStatusesModal';
-import TaskDetailModal from './TaskDetailModal';
-import { useAuth } from '../../context/AuthContext';
 import { useSocket } from '../../context/SocketContext';
-import { useNotification } from '../../context/NotificationContext';
+import NewTaskModal from './NewTaskModal';
+import TaskCard from './TaskCard';
+import LoadingPage from '../common/LoadingPage';
+import ErrorPage from '../common/ErrorPage';
 import './Tasks.css';
 
 function Kanban({ project, isOwner }) {
@@ -14,284 +12,188 @@ function Kanban({ project, isOwner }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [showNewTaskModal, setShowNewTaskModal] = useState(false);
-  const [showEditStatusesModal, setShowEditStatusesModal] = useState(false);
-  const [selectedTask, setSelectedTask] = useState(null);
-  const { currentUser } = useAuth();
-  const { socket, joinProject, leaveProject } = useSocket();
-  const { showSuccess, showError } = useNotification();
+  const [movingTask, setMovingTask] = useState(null);
   
-  const isProjectOwner = () => {
-    return project.members.some(
-      member => member.userId === currentUser?.uid && member.role === 'owner'
-    );
-  };
+  const { socket } = useSocket();
   
-  // Enhance tasks with project data
-  const enhanceTasksWithProjectData = (tasks) => {
-    return tasks.map(task => ({
-      ...task,
-      project: {
-        _id: project._id,
-        title: project.title,
-        statuses: project.statuses,
-        members: project.members
-      }
-    }));
-  };
-
-  const fetchTasks = async () => {
+  const fetchTasks = useCallback(async () => {
     try {
       setLoading(true);
-      const data = await getProjectTasks(project._id);
-      // Enhance tasks with project data
-      const enhancedTasks = enhanceTasksWithProjectData(data);
-      setTasks(enhancedTasks);
       setError(null);
+      const tasksData = await getProjectTasks(project._id);
+      setTasks(tasksData);
     } catch (err) {
-      setError('Failed to load tasks');
-      console.error(err);
+      console.error('Error fetching tasks:', err);
+      setError('Failed to load tasks for this project.');
     } finally {
       setLoading(false);
     }
-  };
+  }, [project._id]);
   
   useEffect(() => {
     fetchTasks();
+  }, [fetchTasks]);
+  
+  // Set up real-time updates
+  useEffect(() => {
+    if (!socket) return;
     
-    // Join the project socket room
-    joinProject(project._id);
-    
-    // Set up socket event listeners for real-time updates
-    if (socket) {
-      socket.on('task-created', (newTask) => {
-        if (newTask.projectId === project._id) {
-          // Enhance the new task with project data
-          const enhancedTask = {
-            ...newTask,
-            project: {
-              _id: project._id,
-              title: project.title,
-              statuses: project.statuses,
-              members: project.members
-            }
-          };
-          setTasks(prevTasks => [...prevTasks, enhancedTask]);
-        }
-      });
-      
-      socket.on('task-updated', (updatedTask) => {
-        if (updatedTask.projectId === project._id) {
-          // Enhance the updated task with project data
-          const enhancedTask = {
-            ...updatedTask,
-            project: {
-              _id: project._id,
-              title: project.title,
-              statuses: project.statuses,
-              members: project.members
-            }
-          };
-          setTasks(prevTasks => 
-            prevTasks.map(task => 
-              task._id === enhancedTask._id ? enhancedTask : task
-            )
-          );
-        }
-      });
-      
-      socket.on('task-deleted', ({ taskId, projectId }) => {
-        if (projectId === project._id) {
-          setTasks(prevTasks => 
-            prevTasks.filter(task => task._id !== taskId)
-          );
-        }
-      });
-      
-      socket.on('comment-added', ({ taskId, projectId }) => {
-        if (projectId === project._id) {
-          // Just trigger a refresh of the affected task
-          fetchTasks();
-        }
-      });
+    // Join project room to receive updates
+    if (project && project._id) {
+      socket.emit('join-project', project._id);
     }
     
-    // Clean up
-    return () => {
-      leaveProject(project._id);
-      if (socket) {
-        socket.off('task-created');
-        socket.off('task-updated');
-        socket.off('task-deleted');
-        socket.off('comment-added');
+    // Listen for task events
+    const handleTaskCreated = (newTask) => {
+      if (newTask.projectId === project._id) {
+        setTasks(prev => [...prev, newTask]);
       }
     };
-  }, [project._id, socket, joinProject, leaveProject]);
-  
-  const handleDragStart = (e, taskId) => {
-    // Add the task ID as data
-    e.dataTransfer.setData('taskId', taskId);
     
-    // Give visual feedback
-    e.dataTransfer.effectAllowed = 'move';
+    const handleTaskUpdated = (updatedTask) => {
+      if (updatedTask.projectId === project._id) {
+        setTasks(prev => prev.map(task => 
+          task._id === updatedTask._id ? updatedTask : task
+        ));
+      }
+    };
+    
+    const handleTaskDeleted = ({ taskId, projectId }) => {
+      if (projectId === project._id) {
+        setTasks(prev => prev.filter(task => task._id !== taskId));
+      }
+    };
+    
+    socket.on('task-created', handleTaskCreated);
+    socket.on('task-updated', handleTaskUpdated);
+    socket.on('task-deleted', handleTaskDeleted);
+    
+    // Clean up listeners
+    return () => {
+      if (socket) {
+        socket.off('task-created', handleTaskCreated);
+        socket.off('task-updated', handleTaskUpdated);
+        socket.off('task-deleted', handleTaskDeleted);
+        
+        // Leave the project room
+        if (project && project._id) {
+          socket.emit('leave-project', project._id);
+        }
+      }
+    };
+  }, [socket, project]);
+  
+  const handleDragStart = (e, task) => {
+    e.dataTransfer.setData('taskId', task._id);
+    setMovingTask(task);
   };
   
-  const handleDragOver = (e, status) => {
+  const handleDragOver = (e) => {
     e.preventDefault();
     e.dataTransfer.dropEffect = 'move';
-    
-    // Add visual indication for the drop target
-    e.currentTarget.classList.add('drag-over');
-  };
-
-  const handleDragLeave = (e) => {
-    // Remove visual indication when dragging leaves
-    e.currentTarget.classList.remove('drag-over');
   };
   
   const handleDrop = async (e, status) => {
     e.preventDefault();
-    // Remove visual indication
-    e.currentTarget.classList.remove('drag-over');
     
     const taskId = e.dataTransfer.getData('taskId');
-    if (!taskId) return;
+    
+    if (!taskId || !movingTask) return;
+    
+    // Don't update if dropping in the same status
+    if (movingTask.status === status) {
+      return;
+    }
     
     try {
+      // Optimistic update
+      setTasks(prevTasks => prevTasks.map(task => 
+        task._id === taskId ? { ...task, status } : task
+      ));
+      
+      // API call to update task status
       await updateTaskStatus(taskId, status);
       
-      // Optimistically update the UI before the task update comes via socket
-      setTasks(prevTasks => 
-        prevTasks.map(task => 
-          task._id === taskId ? { ...task, status } : task
-        )
-      );
-      showSuccess(`Task moved to ${status}`);
-    } catch (err) {
-      console.error('Error moving task:', err);
-      showError('Failed to move task');
-      fetchTasks(); // Refresh on error to ensure UI is in sync
+      // Note: We don't need to refresh tasks here since we'll get a websocket update
+      
+    } catch (error) {
+      // Revert optimistic update on failure
+      console.error('Failed to update task status:', error);
+      
+      // Revert the change
+      setTasks(prevTasks => [...prevTasks]);
+      fetchTasks(); // Refresh the tasks to ensure consistency
+    } finally {
+      setMovingTask(null);
     }
   };
   
-  const handleTaskCreated = () => {
+  const handleTaskAdded = (newTask) => {
+    setTasks(prev => [...prev, newTask]);
     setShowNewTaskModal(false);
-    fetchTasks();
-    showSuccess('Task created successfully');
-  };
-  
-  const handleStatusesUpdated = () => {
-    setShowEditStatusesModal(false);
-    fetchTasks();
-    showSuccess('Statuses updated successfully');
-  };
-
-  const handleTaskClick = (task) => {
-    setSelectedTask(task);
-  };
-  
-  const handleCloseTaskDetail = () => {
-    setSelectedTask(null);
-  };
-  
-  const handleTaskUpdated = () => {
-    fetchTasks();
-    setSelectedTask(null);
-    showSuccess('Task updated successfully');
   };
   
   if (loading) {
-    return (
-      <div className="loading-spinner">
-        Loading tasks...
-      </div>
-    );
+    return <LoadingPage message="Loading tasks..." size="small" />;
   }
   
-  // Group tasks by status
-  const tasksByStatus = {};
-  project.statuses.forEach(status => {
-    tasksByStatus[status] = tasks.filter(task => task.status === status);
-  });
+  if (error) {
+    return (
+      <ErrorPage
+        message="Could not load tasks"
+        details={error}
+        onRetry={fetchTasks}
+      />
+    );
+  }
   
   return (
     <div className="kanban-container">
       <div className="kanban-header">
-        <h2>
-          <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-            <rect x="7" y="7" width="3" height="9"></rect>
-            <rect x="14" y="7" width="3" height="5"></rect>
-          </svg>
-          Tasks Board
-        </h2>
-        <div className="kanban-actions">
-          {isOwner && (
-            <>
-              <button 
-                className="edit-statuses-btn"
-                onClick={() => setShowEditStatusesModal(true)}
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M12 20h9"></path>
-                  <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
-                </svg>
-                Edit Statuses
-              </button>
-              <button 
-                className="new-task-btn"
-                onClick={() => setShowNewTaskModal(true)}
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <line x1="12" y1="5" x2="12" y2="19"></line>
-                  <line x1="5" y1="12" x2="19" y2="12"></line>
-                </svg>
-                New Task
-              </button>
-            </>
-          )}
-        </div>
+        {isOwner && (
+          <button 
+            className="new-task-btn"
+            onClick={() => setShowNewTaskModal(true)}
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="12" y1="5" x2="12" y2="19"></line>
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+            New Task
+          </button>
+        )}
       </div>
       
-      {error && (
-        <div className="error-message">
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="12" cy="12" r="10"></circle>
-            <line x1="12" y1="8" x2="12" y2="12"></line>
-            <line x1="12" y1="16" x2="12.01" y2="16"></line>
-          </svg>
-          {error}
-        </div>
-      )}
-      
       <div className="kanban-board">
-        {project.statuses.map((status, index) => (
+        {project.statuses.map(status => (
           <div 
-            key={status}
+            key={status} 
             className="kanban-column"
-            style={{ '--animation-order': index }}
-            onDragOver={(e) => handleDragOver(e, status)}
-            onDragLeave={handleDragLeave}
+            onDragOver={handleDragOver}
             onDrop={(e) => handleDrop(e, status)}
           >
-            <div className="column-header">
+            <div className="kanban-column-header">
               <h3>{status}</h3>
-              <span className="task-count">{tasksByStatus[status]?.length || 0}</span>
+              <span className="task-count">
+                {tasks.filter(task => task.status === status).length}
+              </span>
             </div>
+            
             <div className="task-list">
-              {tasksByStatus[status] && tasksByStatus[status].length > 0 ? (
-                tasksByStatus[status].map((task, taskIndex) => (
-                  <TaskCard 
-                    key={task._id} 
+              {tasks
+                .filter(task => task.status === status)
+                .map(task => (
+                  <TaskCard
+                    key={task._id}
                     task={task}
-                    onTaskUpdated={fetchTasks}
                     onDragStart={handleDragStart}
-                    onClick={handleTaskClick}
-                    style={{ '--animation-order': taskIndex }}
+                    isOwner={isOwner}
                   />
-                ))
-              ) : (
+                ))}
+                
+              {tasks.filter(task => task.status === status).length === 0 && (
                 <div className="empty-column">
-                  Drop tasks here
+                  <p>No tasks yet</p>
                 </div>
               )}
             </div>
@@ -299,27 +201,11 @@ function Kanban({ project, isOwner }) {
         ))}
       </div>
       
-      {isOwner && showNewTaskModal && (
-        <NewTaskModal 
+      {showNewTaskModal && (
+        <NewTaskModal
           project={project}
           onClose={() => setShowNewTaskModal(false)}
-          onTaskCreated={handleTaskCreated}
-        />
-      )}
-      
-      {isOwner && showEditStatusesModal && (
-        <EditStatusesModal
-          project={project}
-          onClose={() => setShowEditStatusesModal(false)}
-          onStatusesUpdated={handleStatusesUpdated}
-        />
-      )}
-      
-      {selectedTask && (
-        <TaskDetailModal
-          task={selectedTask}
-          onClose={handleCloseTaskDetail}
-          onTaskUpdated={handleTaskUpdated}
+          onTaskAdded={handleTaskAdded}
         />
       )}
     </div>
