@@ -2,37 +2,8 @@ import React from 'react';
 import { formatDistanceToNow } from 'date-fns';
 import { CalendarIcon, UserIcon } from './common/Icons';
 
-interface TaskAssignee {
-  userId: string;
-  email: string;
-  name?: string; // Add name field
-}
-
-interface Task {
-  _id: string;
-  title: string;
-  description?: string;
-  status: string;
-  dueDate?: string;
-  assignee?: TaskAssignee;
-  isUrgent?: boolean;
-  priority?: string; // Add priority field
-  createdAt: string;
-  updatedAt: string;
-}
-
-interface TaskCardProps {
-  task: Task;
-  currentUserId?: string;
-  isDraggable?: boolean;
-  onClick?: () => void;
-  onDragStart?: (e: React.DragEvent<HTMLDivElement>, taskId: string) => void;
-  onDragEnd?: (e: React.DragEvent<HTMLDivElement>) => void;
-  animationOrder?: number;
-  isDragging?: boolean;
-}
-
-const TaskCard: React.FC<TaskCardProps> = ({
+// Remove TypeScript interfaces and use PropTypes instead
+const TaskCard = ({
   task,
   currentUserId,
   isDraggable = true,
@@ -42,7 +13,7 @@ const TaskCard: React.FC<TaskCardProps> = ({
   animationOrder = 0,
   isDragging = false
 }) => {
-  const formatDate = (dateString?: string) => {
+  const formatDate = (dateString) => {
     if (!dateString) return null;
     return formatDistanceToNow(new Date(dateString), { addSuffix: true });
   };
@@ -67,7 +38,7 @@ const TaskCard: React.FC<TaskCardProps> = ({
   };
   
   // Generate avatar color based on name or email
-  const getAvatarColor = (assignee?: TaskAssignee) => {
+  const getAvatarColor = (assignee) => {
     if (!assignee) return '#94a3b8';
     
     // Use name if available, otherwise fall back to email
@@ -87,7 +58,7 @@ const TaskCard: React.FC<TaskCardProps> = ({
   };
 
   // Get display name from assignee
-  const getDisplayName = (assignee?: TaskAssignee) => {
+  const getDisplayName = (assignee) => {
     if (!assignee) return null;
     
     // If name is available, use it
@@ -99,7 +70,7 @@ const TaskCard: React.FC<TaskCardProps> = ({
     return assignee.email.split('@')[0];
   };
   
-  const handleDragStart = (e: React.DragEvent<HTMLDivElement>) => {
+  const handleDragStart = (e) => {
     if (onDragStart && isDraggable) {
       onDragStart(e, task._id);
     }
@@ -108,7 +79,7 @@ const TaskCard: React.FC<TaskCardProps> = ({
   return (
     <div 
       className={`task-card ${isDraggable ? 'draggable' : ''} ${task.isUrgent ? 'urgent' : ''} ${isDragging ? 'dragging' : ''} ${getPriorityClass()}`}
-      style={{ '--animation-order': animationOrder } as React.CSSProperties}
+      style={{ '--animation-order': animationOrder }}
       draggable={isDraggable}
       onDragStart={handleDragStart}
       onDragEnd={onDragEnd}
@@ -160,6 +131,35 @@ const TaskCard: React.FC<TaskCardProps> = ({
       )}
     </div>
   );
+};
+
+// Add PropTypes for type checking
+import PropTypes from 'prop-types';
+
+TaskCard.propTypes = {
+  task: PropTypes.shape({
+    _id: PropTypes.string.isRequired,
+    title: PropTypes.string.isRequired,
+    description: PropTypes.string,
+    status: PropTypes.string.isRequired,
+    dueDate: PropTypes.string,
+    assignee: PropTypes.shape({
+      userId: PropTypes.string.isRequired,
+      email: PropTypes.string.isRequired,
+      name: PropTypes.string
+    }),
+    isUrgent: PropTypes.bool,
+    priority: PropTypes.string,
+    createdAt: PropTypes.string.isRequired,
+    updatedAt: PropTypes.string.isRequired
+  }).isRequired,
+  currentUserId: PropTypes.string,
+  isDraggable: PropTypes.bool,
+  onClick: PropTypes.func,
+  onDragStart: PropTypes.func,
+  onDragEnd: PropTypes.func,
+  animationOrder: PropTypes.number,
+  isDragging: PropTypes.bool
 };
 
 export default TaskCard;

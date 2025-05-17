@@ -1,26 +1,21 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { PlusIcon, XMarkIcon, CheckIcon } from './common/Icons';
 
-interface StatusEditPopupProps {
-  statuses: string[];
-  onStatusesChanged: (newStatuses: string[]) => void;
-  onClose: () => void;
-}
-
-const StatusEditPopup: React.FC<StatusEditPopupProps> = ({ 
+// Remove TypeScript interface and use PropTypes instead
+const StatusEditPopup = ({ 
   statuses, 
   onStatusesChanged, 
   onClose 
 }) => {
-  const [currentStatuses, setCurrentStatuses] = useState<string[]>([...statuses]);
-  const [newStatus, setNewStatus] = useState<string>('');
-  const [error, setError] = useState<string | null>(null);
-  const [editingIndex, setEditingIndex] = useState<number | null>(null);
-  const [editText, setEditText] = useState<string>('');
+  const [currentStatuses, setCurrentStatuses] = useState([...statuses]);
+  const [newStatus, setNewStatus] = useState('');
+  const [error, setError] = useState(null);
+  const [editingIndex, setEditingIndex] = useState(null);
+  const [editText, setEditText] = useState('');
   
-  const popupRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
-  const editInputRef = useRef<HTMLInputElement>(null);
+  const popupRef = useRef(null);
+  const inputRef = useRef(null);
+  const editInputRef = useRef(null);
   
   // Focus input when editing starts
   useEffect(() => {
@@ -31,8 +26,8 @@ const StatusEditPopup: React.FC<StatusEditPopupProps> = ({
   
   // Handle click outside to close
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (popupRef.current && !popupRef.current.contains(event.target as Node)) {
+    const handleClickOutside = (event) => {
+      if (popupRef.current && !popupRef.current.contains(event.target)) {
         onClose();
       }
     };
@@ -66,7 +61,7 @@ const StatusEditPopup: React.FC<StatusEditPopupProps> = ({
     }
   };
   
-  const handleRemoveStatus = (index: number) => {
+  const handleRemoveStatus = (index) => {
     if (currentStatuses.length <= 1) {
       setError('Cannot remove the last status');
       return;
@@ -78,7 +73,7 @@ const StatusEditPopup: React.FC<StatusEditPopupProps> = ({
     setError(null);
   };
   
-  const handleMoveStatus = (index: number, direction: 'up' | 'down') => {
+  const handleMoveStatus = (index, direction) => {
     if (
       (direction === 'up' && index === 0) || 
       (direction === 'down' && index === currentStatuses.length - 1)
@@ -92,7 +87,7 @@ const StatusEditPopup: React.FC<StatusEditPopupProps> = ({
     setCurrentStatuses(updated);
   };
   
-  const startEditing = (index: number) => {
+  const startEditing = (index) => {
     setEditingIndex(index);
     setEditText(currentStatuses[index]);
   };
@@ -121,7 +116,7 @@ const StatusEditPopup: React.FC<StatusEditPopupProps> = ({
     setError(null);
   };
   
-  const handleKeyDown = (e: React.KeyboardEvent, type: 'add' | 'edit') => {
+  const handleKeyDown = (e, type) => {
     if (e.key === 'Enter') {
       e.preventDefault();
       if (type === 'add') {
@@ -271,6 +266,15 @@ const StatusEditPopup: React.FC<StatusEditPopupProps> = ({
       </div>
     </div>
   );
+};
+
+// Add PropTypes for type checking
+import PropTypes from 'prop-types';
+
+StatusEditPopup.propTypes = {
+  statuses: PropTypes.arrayOf(PropTypes.string).isRequired,
+  onStatusesChanged: PropTypes.func.isRequired,
+  onClose: PropTypes.func.isRequired
 };
 
 export default StatusEditPopup;
