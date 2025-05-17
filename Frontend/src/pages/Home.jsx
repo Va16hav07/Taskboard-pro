@@ -115,7 +115,7 @@ function Home() {
           <p className="mt-4 text-lg text-gray-500 dark:text-gray-400">Join thousands of teams already using TaskBoard Pro</p>
           <div className="mt-8">
             <Link
-              to={currentUser ? "/dashboard" : "/signup"}
+              to={currentUser ? "/dashboard" : "/login"}
               className="inline-flex items-center px-6 py-3 text-base font-medium text-white transition-all duration-300 bg-gradient-to-r from-purple-600 to-indigo-600 border border-transparent rounded-md shadow-sm hover:from-purple-700 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
             >
               {currentUser ? "Go to Dashboard" : "Sign up for free"}

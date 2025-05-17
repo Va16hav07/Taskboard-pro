@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { FcGoogle } from 'react-icons/fc';
+import './Auth.css';
 
 function Login() {
   const { signInWithGoogle, currentUser, error } = useAuth();
@@ -24,42 +25,71 @@ function Login() {
   };
 
   return (
-    <div className="min-h-[80vh] flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-white to-gray-100 dark:from-gray-900 dark:to-gray-800">
-      <div className="max-w-md w-full space-y-8 bg-white dark:bg-gray-800 p-8 rounded-xl shadow-lg transform transition-all hover:scale-105">
-        <div>
-          <div className="flex justify-center">
-            <svg className="h-16 w-16 text-primary-600" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M5 3a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2V5a2 2 0 00-2-2H5zm0 2h14v14H5V5z" />
-              <path d="M10 8a1 1 0 000 2h4a1 1 0 000-2h-4z" />
-              <path d="M8 12a1 1 0 012 0v4a1 1 0 01-2 0v-4z" />
-              <path d="M14 12a1 1 0 012 0v4a1 1 0 01-2 0v-4z" />
+    <div className="auth-container">
+      <div className="auth-background">
+        <div className="auth-shape shape-1"></div>
+        <div className="auth-shape shape-2"></div>
+        <div className="auth-shape shape-3"></div>
+      </div>
+      
+      <div className="auth-card">
+        <div className="auth-logo-container">
+          <div className="auth-logo">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+              <line x1="8" y1="21" x2="16" y2="21"></line>
+              <line x1="12" y1="17" x2="12" y2="21"></line>
             </svg>
           </div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900 dark:text-white">
-            Welcome to TaskBoard Pro
-          </h2>
-          <p className="mt-2 text-center text-sm text-blue-600 dark:text-blue-400">
-            Collaborative project management platform
-          </p>
         </div>
         
+        <h1 className="auth-title">TaskBoard Pro</h1>
+        <p className="auth-subtitle">Your collaborative project management platform</p>
+        
         {error && (
-          <div className="bg-red-50 dark:bg-red-900/30 p-4 rounded-md text-red-800 dark:text-red-300 text-sm">
-            {error}
+          <div className="auth-error">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="12" y1="8" x2="12" y2="12"></line>
+              <line x1="12" y1="16" x2="12.01" y2="16"></line>
+            </svg>
+            <span>{error}</span>
           </div>
         )}
         
-        <div className="mt-8 space-y-6">
-          <button 
-            onClick={handleGoogleSignIn} 
-            className="group relative w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200"
-          >
-            <span className="flex items-center">
-              <FcGoogle className="w-5 h-5 mr-3" />
-              Sign in with Google
-            </span>
-          </button>
+        <div className="auth-features">
+          <div className="auth-feature">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="9 11 12 14 22 4"></polyline>
+              <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
+            </svg>
+            <span>Manage tasks efficiently</span>
+          </div>
+          <div className="auth-feature">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+              <circle cx="9" cy="7" r="4"></circle>
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+              <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+            </svg>
+            <span>Collaborate with team members</span>
+          </div>
+          <div className="auth-feature">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+              <polyline points="22 4 12 14.01 9 11.01"></polyline>
+            </svg>
+            <span>Track project progress</span>
+          </div>
         </div>
+        
+        <button 
+          onClick={handleGoogleSignIn} 
+          className="google-signin-btn"
+        >
+          <FcGoogle className="google-icon" />
+          <span>Sign in / Sign up with Google</span>
+        </button>
       </div>
     </div>
   );
