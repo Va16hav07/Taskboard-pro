@@ -1,11 +1,46 @@
-# React + Vite
+# Taskboard Pro Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+This project is built with React and Vite, providing a modern and efficient development environment.
 
-Currently, two official plugins are available:
+## Firebase Configuration Setup
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+For security reasons, Firebase configuration details are not included in the repository. Follow these steps to set up Firebase for the frontend:
+
+1. Create a `.env` file in the root directory using the provided `.env.example` template
+2. Get your Firebase project configuration:
+   - Go to [Firebase Console](https://console.firebase.google.com/)
+   - Select your project
+   - Navigate to Project Settings > General
+   - Scroll down to "Your apps" section and copy the config details
+   - Add these values to your `.env` file
+
+Alternatively, you can create a file at `src/config/firebaseConfig.js` based on the example provided.
+
+## Getting Started
+
+1. Install dependencies:
+   ```
+   npm install
+   ```
+
+2. Set up Firebase configuration as described above
+
+3. Start the development server:
+   ```
+   npm run dev
+   ```
+
+## Features
+
+- Hot Module Replacement (HMR)
+- ESLint integration
+- Modern React development workflow
+
+## Available Scripts
+
+- `npm run dev` - Start development server
+- `npm run build` - Build for production
+- `npm run preview` - Preview production build
 
 ## Expanding the ESLint configuration
 
