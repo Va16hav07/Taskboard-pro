@@ -343,18 +343,43 @@ Authorization: Bearer <your-jwt-token>
 
     **Backend (.env):**
     ```
-    MONGODB_URI=your_mongodb_connection_string
-    JWT_SECRET=your_jwt_secret
-    FIREBASE_CONFIG=your_firebase_config
-    FRONTEND_URL=http://localhost:5173
+    # Firebase Configuration
+    FIREBASE_TYPE=service_account
+    FIREBASE_PROJECT_ID=your-project-id
+    FIREBASE_PRIVATE_KEY_ID=your-private-key-id
+    FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\nYour Private Key Content\n-----END PRIVATE KEY-----\n"
+    FIREBASE_CLIENT_EMAIL=firebase-adminsdk-xxxx@your-project-id.iam.gserviceaccount.com
+    FIREBASE_CLIENT_ID=your-client-id
+    FIREBASE_AUTH_URI=https://accounts.google.com/o/oauth2/auth
+    FIREBASE_TOKEN_URI=https://oauth2.googleapis.com/token
+    FIREBASE_AUTH_PROVIDER_CERT_URL=https://www.googleapis.com/oauth2/v1/certs
+    FIREBASE_CLIENT_CERT_URL=https://www.googleapis.com/robot/v1/metadata/x509/firebase-adminsdk-xxxx%40your-project-id.iam.gserviceaccount.com
+    
+    # App Configuration
+    PORT=3000
+    NODE_ENV=development
+    
+    # JWT Secret
+    JWT_SECRET=your-jwt-secret
+
     ```
 
     **Frontend (.env):**
     ```
-    VITE_API_URL=http://localhost:5000/api
-    VITE_FIREBASE_API_KEY=your_firebase_api_key
-    VITE_FIREBASE_AUTH_DOMAIN=your_firebase_auth_domain
-    VITE_FIREBASE_PROJECT_ID=your_firebase_project_id
+    # Firebase Configuration
+    VITE_FIREBASE_API_KEY=your-api-key
+    VITE_FIREBASE_AUTH_DOMAIN=your-project-id.firebaseapp.com
+    VITE_FIREBASE_PROJECT_ID=your-project-id
+    VITE_FIREBASE_STORAGE_BUCKET=your-project-id.appspot.com
+    VITE_FIREBASE_MESSAGING_SENDER_ID=your-messaging-sender-id
+    VITE_FIREBASE_APP_ID=your-app-id
+    
+    # API Configuration
+    VITE_API_URL=http://localhost:3000/api
+    
+    # Feature Flags
+    VITE_ENABLE_PREMIUM_FEATURES=false
+
     ```
 
 5. **Start the development servers**
