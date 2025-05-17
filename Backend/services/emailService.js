@@ -113,5 +113,26 @@ export const sendTaskAssignment = async ({ email, taskTitle, projectName, assign
     </div>
   `;
   
-  return sendEmail({ to: email, subject, html });
+  await sendEmail({ to: email, subject, html });
+
+  // Also send real-time notification if possible
+  try {
+    const io = getIO();
+    
+    // Find user by email
+    const user = await User.findOne({ email });
+    
+    if (user && user.uid) {
+      // Send a notification to this specific user
+      io.to(`user:${user.uid}`).emit('task-assigned', {
+        taskTitle,
+        projectName,
+        assignerName,
+        taskLink
+      });
+    }
+  } catch (error) {
+    console.error('Error sending real-time notification:', error);
+    // Continue even if real-time notification fails
+  }
 };

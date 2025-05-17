@@ -6,6 +6,7 @@ import EditStatusesModal from './EditStatusesModal';
 import TaskDetailModal from './TaskDetailModal';
 import { useAuth } from '../../context/AuthContext';
 import { useSocket } from '../../context/SocketContext';
+import { useNotification } from '../../context/NotificationContext';
 import './Tasks.css';
 
 function Kanban({ project, isOwner }) {
@@ -17,6 +18,7 @@ function Kanban({ project, isOwner }) {
   const [selectedTask, setSelectedTask] = useState(null);
   const { currentUser } = useAuth();
   const { socket, joinProject, leaveProject } = useSocket();
+  const { showSuccess, showError } = useNotification();
   
   const isProjectOwner = () => {
     return project.members.some(
@@ -163,8 +165,10 @@ function Kanban({ project, isOwner }) {
           task._id === taskId ? { ...task, status } : task
         )
       );
+      showSuccess(`Task moved to ${status}`);
     } catch (err) {
       console.error('Error moving task:', err);
+      showError('Failed to move task');
       fetchTasks(); // Refresh on error to ensure UI is in sync
     }
   };
@@ -172,11 +176,13 @@ function Kanban({ project, isOwner }) {
   const handleTaskCreated = () => {
     setShowNewTaskModal(false);
     fetchTasks();
+    showSuccess('Task created successfully');
   };
   
   const handleStatusesUpdated = () => {
     setShowEditStatusesModal(false);
     fetchTasks();
+    showSuccess('Statuses updated successfully');
   };
 
   const handleTaskClick = (task) => {
@@ -190,6 +196,7 @@ function Kanban({ project, isOwner }) {
   const handleTaskUpdated = () => {
     fetchTasks();
     setSelectedTask(null);
+    showSuccess('Task updated successfully');
   };
   
   if (loading) {

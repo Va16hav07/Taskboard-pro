@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { createTask } from '../../services/taskService';
 import Modal from '../common/Modal';
 import './Tasks.css';
+import { useNotification } from '../../context/NotificationContext';
 
 function NewTaskModal({ project, onClose, onTaskCreated }) {
   const [title, setTitle] = useState('');
@@ -14,6 +15,7 @@ function NewTaskModal({ project, onClose, onTaskCreated }) {
   const [priority, setPriority] = useState('');
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { showError } = useNotification();
   
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -38,7 +40,9 @@ function NewTaskModal({ project, onClose, onTaskCreated }) {
       });
       onTaskCreated();
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to create task');
+      const errorMessage = err.response?.data?.message || 'Failed to create task';
+      setError(errorMessage);
+      showError(errorMessage);
       setIsSubmitting(false);
     }
   };

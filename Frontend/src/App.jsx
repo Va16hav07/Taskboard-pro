@@ -1,6 +1,7 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { SocketProvider } from './context/SocketContext';
+import { NotificationProvider } from './context/NotificationContext';
 import Header from './components/layout/Header';
 import Login from './components/auth/Login';
 import Dashboard from './pages/Dashboard';
@@ -8,6 +9,7 @@ import Home from './pages/Home';
 import Projects from './pages/Projects';
 import ProjectDetails from './pages/ProjectDetails';
 import UserProfile from './pages/UserProfile';
+import NotificationPopup from './components/notifications/NotificationPopup';
 import './App.css';
 
 // Protected Route component
@@ -60,9 +62,12 @@ function AppContent() {
 function App() {
   return (
     <AuthProvider>
-      <SocketProvider>
-        <AppContent />
-      </SocketProvider>
+      <NotificationProvider>
+        <SocketProvider>
+          <AppContent />
+          <NotificationPopup />
+        </SocketProvider>
+      </NotificationProvider>
     </AuthProvider>
   );
 }
