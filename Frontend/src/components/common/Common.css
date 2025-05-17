@@ -1,0 +1,173 @@
+/* Common styles for Loading and Error pages */
+
+/* Loading Page */
+.loading-page {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 50vh;
+  width: 100%;
+  padding: 2rem;
+}
+
+.loading-spinner-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.loading-spinner-large {
+  display: inline-block;
+  width: 80px;
+  height: 80px;
+  margin-bottom: 1.5rem;
+  color: var(--color-primary, #2563eb);
+  animation: spin 1.5s linear infinite;
+}
+
+.loading-spinner-large svg {
+  width: 100%;
+  height: 100%;
+}
+
+.loading-spinner-container h2 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  color: var(--color-gray-800, #1e293b);
+}
+
+.loading-spinner-container p {
+  color: var(--color-gray-500, #64748b);
+  font-size: 1rem;
+}
+
+/* Error Page */
+.error-page {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 50vh;
+  width: 100%;
+  padding: 2rem;
+}
+
+.error-container {
+  max-width: 500px;
+  text-align: center;
+  padding: 2rem;
+  border-radius: 12px;
+  background-color: white;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.error-icon {
+  display: inline-block;
+  width: 64px;
+  height: 64px;
+  margin-bottom: 1.5rem;
+  color: var(--color-error, #dc2626);
+}
+
+.error-icon svg {
+  width: 100%;
+  height: 100%;
+}
+
+.error-container h2 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+  color: var(--color-gray-800, #1e293b);
+}
+
+.error-container p {
+  color: var(--color-gray-600, #475569);
+  margin-bottom: 1.5rem;
+  line-height: 1.6;
+}
+
+.retry-button {
+  background-color: var(--color-primary, #2563eb);
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.retry-button:hover {
+  background-color: var(--color-primary-dark, #1d4ed8);
+}
+
+.retry-button svg {
+  width: 16px;
+  height: 16px;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Socket Connection Error */
+.socket-connection-error {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background-color: var(--color-error-light, #fee2e2);
+  color: var(--color-error, #dc2626);
+  padding: 12px 16px;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+  max-width: 300px;
+  font-size: 0.9rem;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.socket-connection-error p {
+  margin: 0;
+}
+
+.socket-connection-error button {
+  background-color: white;
+  color: var(--color-primary, #2563eb);
+  border: 1px solid var(--color-primary, #2563eb);
+  border-radius: 4px;
+  padding: 6px 10px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  align-self: flex-end;
+}
+
+.socket-connection-error button:hover {
+  background-color: var(--color-primary, #2563eb);
+  color: white;
+}
+
+/* Responsive adjustments */
+@media (max-width: 640px) {
+  .loading-spinner-large {
+    width: 60px;
+    height: 60px;
+  }
+  
+  .error-icon {
+    width: 48px;
+    height: 48px;
+  }
+  
+  .loading-spinner-container h2,
+  .error-container h2 {
+    font-size: 1.25rem;
+  }
+}

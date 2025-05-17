@@ -1,90 +1,88 @@
 import { Server } from 'socket.io';
-import { authenticateToken } from '../middleware/auth.js';  // Changed from verifyToken to authenticateToken
+import http from 'http';
+import jwt from 'jsonwebtoken';
+import dotenv from 'dotenv';
 
-// Socket.io server instance
-let io;
+dotenv.config();
 
-/**
- * Initialize socket.io server
- * @param {Object} server - HTTP server instance
- */
+let io = null;
+
 export const initSocketServer = (server) => {
   io = new Server(server, {
     cors: {
-      origin: process.env.FRONTEND_URL || "http://localhost:5173",
-      methods: ["GET", "POST"],
+      origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+      methods: ['GET', 'POST'],
       credentials: true
     }
   });
-  
-  // Add authentication middleware
-  io.use(async (socket, next) => {
+
+  // Authentication middleware
+  io.use((socket, next) => {
     try {
-      // Get token from query params or headers
-      const token = socket.handshake.auth.token || 
-                   socket.handshake.query.token;
+      // Check for token in both auth object and headers
+      const token = socket.handshake.auth?.token || 
+                    socket.handshake.headers?.authorization?.split(' ')[1];
       
       if (!token) {
-        return next(new Error('Authentication error: Token missing'));
+        console.log('No token provided for socket connection');
+        return next(new Error('Authentication error: No token provided'));
       }
       
       // Verify the token
-      const user = await authenticateToken(token);  // Changed from verifyToken to authenticateToken
-      if (!user) {
-        return next(new Error('Authentication error: Invalid token'));
-      }
-      
-      // Store user data in socket
-      socket.user = user;
-      next();
+      jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
+        if (err) {
+          console.error('Socket auth JWT error:', err.message);
+          return next(new Error('Authentication error: Invalid token'));
+        }
+        
+        // Add the decoded user to the socket object
+        socket.user = decoded;
+        console.log(`Socket authenticated: ${decoded.email || decoded.uid}`);
+        next();
+      });
     } catch (error) {
-      next(new Error('Authentication error'));
+      console.error('Socket middleware error:', error);
+      next(new Error('Authentication error: ' + (error.message || 'Internal server error')));
     }
   });
-  
+
   io.on('connection', (socket) => {
-    const userId = socket.user?.uid;
-    
-    if (userId) {
-      // Join a room specific to this user
-      socket.join(`user:${userId}`);
-      console.log(`User ${userId} connected`);
-      
-      // Listen for project joins
-      socket.on('join-project', (projectId) => {
-        if (projectId) {
-          socket.join(`project:${projectId}`);
-          console.log(`User ${userId} joined project ${projectId}`);
-        }
-      });
-      
-      // Listen for project leaves
-      socket.on('leave-project', (projectId) => {
-        if (projectId) {
-          socket.leave(`project:${projectId}`);
-          console.log(`User ${userId} left project ${projectId}`);
-        }
-      });
-      
-      // Handle disconnection
-      socket.on('disconnect', () => {
-        console.log(`User ${userId} disconnected`);
-      });
-    }
+    console.log(`User connected: ${socket.user?.email || socket.user?.uid || 'Unknown'}`);
+
+    // Join user-specific room
+    socket.on('join-user-room', (userData) => {
+      const userId = userData.userId || socket.user?.uid;
+      if (userId) {
+        socket.join(`user:${userId}`);
+        console.log(`User ${userId} joined their personal room`);
+      }
+    });
+
+    // Join project room
+    socket.on('join-project-room', (projectId) => {
+      socket.join(`project:${projectId}`);
+      console.log(`User ${socket.user?.email} joined project room: ${projectId}`);
+    });
+
+    // Leave project room
+    socket.on('leave-project-room', (projectId) => {
+      socket.leave(`project:${projectId}`);
+      console.log(`User ${socket.user?.email} left project room: ${projectId}`);
+    });
+
+    socket.on('disconnect', () => {
+      console.log(`User disconnected: ${socket.user?.email || socket.user?.uid || 'Unknown'}`);
+    });
   });
-  
-  console.log('Socket.io server initialized');
+
   return io;
 };
 
-/**
- * Get the Socket.io server instance
- * @returns {Object} Socket.io server instance
- */
 export const getIO = () => {
   if (!io) {
-    console.warn('Socket.io has not been initialized yet!');
-    return null;
+    throw new Error('Socket.io not initialized');
   }
   return io;
 };
+
+export default { initSocketServer, getIO };

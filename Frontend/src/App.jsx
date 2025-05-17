@@ -1,6 +1,6 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
-import { SocketProvider } from './context/SocketContext';
+import { SocketProvider, useSocket } from './context/SocketContext';
 import { NotificationProvider } from './context/NotificationContext';
 import Header from './components/layout/Header';
 import Login from './components/auth/Login';
@@ -24,6 +24,8 @@ const ProtectedRoute = ({ children }) => {
 };
 
 function AppContent() {
+  const { ConnectionStatus } = useSocket();
+  
   return (
     <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
@@ -54,6 +56,7 @@ function AppContent() {
             } />
           </Routes>
         </main>
+        <ConnectionStatus />
       </div>
     </Router>
   );
