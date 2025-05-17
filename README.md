@@ -53,7 +53,6 @@ The application offers:
 - **Real-time Updates:** Instant changes via WebSocket integration.
 - **Responsive Design:** Works on desktop, tablet, and mobile.
 - **Notifications:** In-app for assignments, mentions, and status changes.
-- **Dark Mode Support:** Adapts to system preferences.
 
 ### Workflow Automation
 
