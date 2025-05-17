@@ -77,15 +77,15 @@
 }
 
 .modal-small {
-  width: 380px;
+  width: 440px;
 }
 
 .modal-medium {
-  width: 520px;
+  width: 640px;
 }
 
 .modal-large {
-  width: 700px;
+  width: 840px;
 }
 
 .modal-auto {
@@ -399,4 +399,9 @@ input:disabled + .toggle-slider {
     from { transform: translateY(100%); opacity: 0.8; }
     to { transform: translateY(0); opacity: 1; }
   }
+}
+
+/* Task detail modal */
+.task-detail-modal {
+  max-width: 450px;
 }

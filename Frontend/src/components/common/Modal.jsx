@@ -1,6 +1,8 @@
 import { useEffect, useRef } from 'react';
 import ReactDOM from 'react-dom';
+import './Modal.css';
 import { XMarkIcon } from './Icons';
+import FocusTrap from 'focus-trap-react';
 
 /**
  * A reusable modal component that renders content in a portal
@@ -55,49 +57,53 @@ function Modal({
     auto: 'max-w-fit',
   };
   
+  // Determine size class for the modal
+  const sizeClass = `modal-${size}`;
+  
   // Render the modal in a portal
   return ReactDOM.createPortal(
-    <div 
-      className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in"
-      onClick={handleOverlayClick}
-      aria-modal="true"
-      role="dialog"
-    >
+    <FocusTrap focusTrapOptions={{ initialFocus: false }}>
       <div 
-        ref={modalRef}
-        className={`bg-white dark:bg-gray-800 rounded-lg shadow-xl flex flex-col border border-gray-200 dark:border-gray-700 w-full ${sizeClasses[size]} ${className} animate-slide-in overflow-hidden`}
-        onClick={e => e.stopPropagation()}
+        className="modal-overlay"
+        onClick={handleOverlayClick}
+        aria-modal="true"
+        role="dialog"
+        aria-labelledby={title ? 'modal-title' : undefined}
       >
-        {/* Modal Header */}
-        <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between sticky top-0 bg-white dark:bg-gray-800 z-10">
-          {title && <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-100">{title}</h2>}
-          {!hideCloseButton && (
-            <button 
-              className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 focus:outline-none focus:ring-2 focus:ring-primary-500 rounded-full p-1"
-              aria-label="Close"
-              onClick={onClose}
-              type="button"
-            >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
+        <div 
+          ref={modalRef}
+          className={`modal-content ${sizeClass} ${className}`}
+          onClick={e => e.stopPropagation()}
+        >
+          {/* Modal Header */}
+          <div className="modal-header">
+            {title && <h2 id="modal-title" className="modal-title">{title}</h2>}
+            {!hideCloseButton && (
+              <button 
+                className="modal-close-btn"
+                aria-label="Close"
+                onClick={onClose}
+                type="button"
+              >
+                ×
+              </button>
+            )}
+          </div>
+          
+          {/* Modal Body */}
+          <div className="modal-body">
+            {children}
+          </div>
+          
+          {/* Modal Footer */}
+          {footer && (
+            <div className="modal-footer">
+              {footer}
+            </div>
           )}
         </div>
-        
-        {/* Modal Body */}
-        <div className="px-6 py-4 overflow-y-auto flex-1">
-          {children}
-        </div>
-        
-        {/* Modal Footer */}
-        {footer && (
-          <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700 flex justify-end gap-3 sticky bottom-0 bg-white dark:bg-gray-800 z-10">
-            {footer}
-          </div>
-        )}
       </div>
-    </div>,
+    </FocusTrap>,
     document.body
   );
 }

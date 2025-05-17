@@ -131,9 +131,9 @@ function StatusManager({ project, onStatusesUpdated, isOwner }) {
         </button>
       </div>
       
-      {statuses.length >= 4 && (
+      {statuses.length >= 10 && (
         <div className="status-limit-warning">
-          You've reached the maximum of 4 statuses.
+          You've reached the maximum of 10 statuses.
         </div>
       )}
       
