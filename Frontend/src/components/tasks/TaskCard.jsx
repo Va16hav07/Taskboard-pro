@@ -74,79 +74,104 @@ function TaskCard({ task, onTaskUpdated, onDragStart, onClick }) {
     const dueDate = new Date(task.dueDate);
     return dueDate < now && task.status !== 'Done';
   };
+
+  // Generate avatar color based on name or email
+  const getAvatarColor = (userIdentifier) => {
+    if (!userIdentifier) return '#94a3b8';
+    
+    const colors = [
+      '#3b82f6', '#8b5cf6', '#ec4899', 
+      '#f97316', '#84cc16', '#06b6d4'
+    ];
+    
+    let hash = 0;
+    for (let i = 0; i < userIdentifier.length; i++) {
+      hash = userIdentifier.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    
+    return colors[Math.abs(hash) % colors.length];
+  };
+
+  // Get display name from assignee
+  const getDisplayName = (assignee) => {
+    if (!assignee) return 'Unassigned';
+    
+    // If name is available, use it
+    if (assignee.name) {
+      return assignee.name;
+    }
+    
+    // Otherwise use email without domain as fallback
+    return assignee.email ? assignee.email.split('@')[0] : 'Unknown';
+  };
   
   return (
     <>
       <div 
-        className={`
-          bg-white dark:bg-gray-800 rounded-md border 
-          ${task.isUrgent ? 'border-l-4 border-l-red-500' : ''} 
-          ${canMoveTask() ? 'cursor-grab border-l-4 border-l-primary-500' : ''}
-          ${isOverdue() ? 'border-red-200 dark:border-red-900' : 'border-gray-200 dark:border-gray-700'}
-          p-3 shadow-sm hover:shadow-md transition-all duration-200 group relative
-          ${isOverdue() ? 'bg-red-50 dark:bg-red-900/10' : ''}
-        `}
+        className={`task-card ${canMoveTask() ? 'draggable' : ''} ${task.isUrgent ? 'urgent' : ''}`}
         draggable={canMoveTask()}
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
         onClick={handleClick}
       >
-        <h4 className="text-gray-900 dark:text-gray-100 font-medium mb-2 pr-6">
-          {task.isUrgent && (
-            <span className="text-red-500 mr-1" title="Urgent">⚠️</span>
-          )}
-          {task.title}
-        </h4>
+        <h3 className="task-title">{task.title}</h3>
         
         {task.description && (
-          <p className="text-gray-600 dark:text-gray-400 text-sm mb-3 line-clamp-2">
-            {task.description}
-          </p>
+          <p className="task-description line-clamp-2">{task.description}</p>
         )}
         
-        <div className="flex justify-between items-center text-xs mt-2">
+        <div className="task-meta">
           {task.dueDate && (
-            <span 
-              className={`
-                inline-flex items-center px-2 py-1 rounded-full
-                ${isOverdue() 
-                  ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300' 
-                  : 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300'
-                }
-              `}
-            >
-              <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            <span className={`due-date ${isOverdue() ? 'overdue' : ''}`}>
+              <svg className="due-date-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                <line x1="16" y1="2" x2="16" y2="6"></line>
+                <line x1="8" y1="2" x2="8" y2="6"></line>
+                <line x1="3" y1="10" x2="21" y2="10"></line>
               </svg>
-              {isOverdue() ? 'Overdue ' : 'Due '}
-              {formatDate(task.dueDate)}
+              <span className="due-date-text">
+                {isOverdue() ? 'Overdue ' : ''}
+                {formatDate(task.dueDate)}
+              </span>
             </span>
           )}
           
-          {task.assignee?.email && (
-            <span className="inline-flex items-center px-2 py-1 rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
-              {task.assignee.email.split('@')[0]}
+          {task.assignee && (
+            <div 
+              className="assignee" 
+              style={{ 
+                backgroundColor: `${getAvatarColor(task.assignee.name || task.assignee.email)}15`, 
+                color: getAvatarColor(task.assignee.name || task.assignee.email),
+                borderLeft: `2px solid ${getAvatarColor(task.assignee.name || task.assignee.email)}`
+              }}
+            >
+              {getDisplayName(task.assignee)}
               {task.assignee.userId === currentUser?.uid && (
-                <span className="ml-1 bg-green-500 text-white rounded-full w-4 h-4 flex items-center justify-center text-xs" title="Assigned to me">✓</span>
+                <span className="assigned-to-me" title="Assigned to me">✓</span>
               )}
-            </span>
+            </div>
           )}
         </div>
         
-        {/* Quick action buttons */}
-        <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex space-x-1">
-          {canMoveTask() && (
-            <button 
-              className="p-1 rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:hover:text-gray-200 dark:hover:bg-gray-700"
-              title="Edit task"
-              onClick={e => { e.stopPropagation(); setShowDetailModal(true); }}
-              type="button"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-              </svg>
-            </button>
-          )}
+        {task.isUrgent && (
+          <div className="urgent-badge">Urgent</div>
+        )}
+        
+        {/* Quick action buttons that appear on hover */}
+        <div className="task-actions">
+          <button 
+            className="edit-action"
+            onClick={(e) => { 
+              e.stopPropagation(); 
+              onClick ? onClick(task) : setShowDetailModal(true); 
+            }}
+            title="Edit task"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+            </svg>
+          </button>
         </div>
       </div>
       

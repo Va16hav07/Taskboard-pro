@@ -29,8 +29,25 @@ function MembersList({ members, projectId, onMemberRemoved, isOwner }) {
     }
   };
   
-  const getInitials = (email) => {
-    return email.split('@')[0].substring(0, 2).toUpperCase();
+  // Get display name from email or name
+  const getDisplayName = (member) => {
+    if (member.name) return member.name;
+    return member.email.split('@')[0];
+  };
+  
+  // Get initials from name or email
+  const getInitials = (member) => {
+    if (member.name) {
+      // If we have a name, use first letter of first and last name
+      const names = member.name.split(' ');
+      if (names.length > 1) {
+        return (names[0][0] + names[names.length-1][0]).toUpperCase();
+      }
+      return member.name.substring(0, 2).toUpperCase();
+    }
+    
+    // Fall back to first two letters of email
+    return member.email.split('@')[0].substring(0, 2).toUpperCase();
   };
   
   const getRandomColor = (email) => {
@@ -68,9 +85,10 @@ function MembersList({ members, projectId, onMemberRemoved, isOwner }) {
                 marginRight: '8px'
               }}
             >
-              {getInitials(member.email)}
+              {getInitials(member)}
             </div>
             <div>
+              <span className="member-name">{getDisplayName(member)}</span>
               <span className="member-email">{member.email}</span>
               <div style={{display: 'flex', gap: '6px', marginTop: '3px'}}>
                 <span className={`member-role ${member.role}`}>{member.role}</span>

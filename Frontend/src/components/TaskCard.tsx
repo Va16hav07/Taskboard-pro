@@ -1,54 +1,143 @@
-import React, { useState } from 'react';
-import { Card, IconButton, CardContent, Typography } from '@mui/material';
-import EditIcon from '@mui/icons-material/Edit';
-import { updateTask } from '../services/taskService';
-import StatusEditPopup from './StatusEditPopup';
+import React from 'react';
+import { formatDistanceToNow } from 'date-fns';
+import { CalendarIcon, UserIcon } from './common/Icons';
+
+interface TaskAssignee {
+  userId: string;
+  email: string;
+  name?: string; // Add name field
+}
 
 interface Task {
   _id: string;
-  status: string;
   title: string;
-  description: string;
+  description?: string;
+  status: string;
+  dueDate?: string;
+  assignee?: TaskAssignee;
+  isUrgent?: boolean;
+  createdAt: string;
+  updatedAt: string;
 }
 
 interface TaskCardProps {
   task: Task;
-  onUpdate: () => void;
-  isAdmin?: boolean;
+  currentUserId?: string;
+  isDraggable?: boolean;
+  onClick?: () => void;
+  onDragStart?: (e: React.DragEvent<HTMLDivElement>, taskId: string) => void;
+  onDragEnd?: (e: React.DragEvent<HTMLDivElement>) => void;
+  animationOrder?: number;
+  isDragging?: boolean;
 }
 
-const TaskCard: React.FC<TaskCardProps> = ({ task, onUpdate, isAdmin = false }) => {
-  const [statusPopupOpen, setStatusPopupOpen] = useState(false);
-
-  const handleStatusUpdate = async (newStatus: string) => {
-    try {
-      await updateTask(task._id, { status: newStatus });
-      onUpdate();
-    } catch (error) {
-      console.error('Error updating status:', error);
+const TaskCard: React.FC<TaskCardProps> = ({
+  task,
+  currentUserId,
+  isDraggable = true,
+  onClick,
+  onDragStart,
+  onDragEnd,
+  animationOrder = 0,
+  isDragging = false
+}) => {
+  const formatDate = (dateString?: string) => {
+    if (!dateString) return null;
+    return formatDistanceToNow(new Date(dateString), { addSuffix: true });
+  };
+  
+  const isOverdue = () => {
+    if (!task.dueDate) return false;
+    return new Date(task.dueDate) < new Date() && task.status !== 'Done';
+  };
+  
+  // Generate avatar color based on name or email
+  const getAvatarColor = (assignee?: TaskAssignee) => {
+    if (!assignee) return '#94a3b8';
+    
+    // Use name if available, otherwise fall back to email
+    const identifier = assignee.name || assignee.email;
+    
+    const colors = [
+      '#3b82f6', '#8b5cf6', '#ec4899', 
+      '#f97316', '#84cc16', '#06b6d4'
+    ];
+    
+    let hash = 0;
+    for (let i = 0; i < identifier.length; i++) {
+      hash = identifier.charCodeAt(i) + ((hash << 5) - hash);
     }
+    
+    return colors[Math.abs(hash) % colors.length];
   };
 
+  // Get display name from assignee
+  const getDisplayName = (assignee?: TaskAssignee) => {
+    if (!assignee) return null;
+    
+    // If name is available, use it
+    if (assignee.name) {
+      return assignee.name;
+    }
+    
+    // Otherwise use email without domain as fallback
+    return assignee.email.split('@')[0];
+  };
+  
+  const handleDragStart = (e: React.DragEvent<HTMLDivElement>) => {
+    if (onDragStart && isDraggable) {
+      onDragStart(e, task._id);
+    }
+  };
+  
   return (
-    <Card>
-      <CardContent>
-        <Typography variant="h6">{task.title}</Typography>
-        <Typography variant="body2" color="textSecondary">
-          {task.description}
-        </Typography>
-      </CardContent>
-      {!isAdmin && (
-        <IconButton onClick={() => setStatusPopupOpen(true)}>
-          <EditIcon />
-        </IconButton>
+    <div 
+      className={`task-card ${isDraggable ? 'draggable' : ''} ${task.isUrgent ? 'urgent' : ''} ${isDragging ? 'dragging' : ''}`}
+      style={{ '--animation-order': animationOrder } as React.CSSProperties}
+      draggable={isDraggable}
+      onDragStart={handleDragStart}
+      onDragEnd={onDragEnd}
+      onClick={onClick}
+    >
+      <h3 className="task-title">
+        {task.title}
+      </h3>
+      
+      {task.description && (
+        <p className="task-description">{task.description}</p>
       )}
-      <StatusEditPopup
-        open={statusPopupOpen}
-        onClose={() => setStatusPopupOpen(false)}
-        currentStatus={task.status}
-        onStatusUpdate={handleStatusUpdate}
-      />
-    </Card>
+      
+      <div className="task-meta">
+        {task.dueDate && (
+          <div className={`due-date ${isOverdue() ? 'overdue' : ''}`}>
+            <CalendarIcon className="due-date-icon" />
+            <span className="due-date-text">
+              {formatDate(task.dueDate)}
+            </span>
+          </div>
+        )}
+        
+        {task.assignee && (
+          <div 
+            className="assignee" 
+            style={{ 
+              backgroundColor: `${getAvatarColor(task.assignee)}15`, 
+              color: getAvatarColor(task.assignee),
+              borderLeft: `2px solid ${getAvatarColor(task.assignee)}`
+            }}
+          >
+            {getDisplayName(task.assignee)}
+            {task.assignee.userId === currentUserId && (
+              <span className="assigned-to-me" title="Assigned to me">✓</span>
+            )}
+          </div>
+        )}
+      </div>
+      
+      {task.isUrgent && (
+        <div className="urgent-badge">Urgent</div>
+      )}
+    </div>
   );
 };
 

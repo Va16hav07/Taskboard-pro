@@ -82,16 +82,6 @@ function CommentList({ taskId, projectId }) {
             {comments.length}
           </span>
         </h3>
-        
-        <div className="comments-toggle">
-          <Toggle 
-            checked={showRealTime}
-            onChange={(e) => setShowRealTime(e.target.checked)}
-            label="Real-time updates"
-            size="sm"
-            color="primary"
-          />
-        </div>
       </div>
       
       {error && (

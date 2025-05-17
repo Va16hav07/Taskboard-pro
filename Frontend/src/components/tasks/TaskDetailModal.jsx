@@ -1,13 +1,12 @@
-import { useState } from 'react';
-import { format } from 'date-fns';
-import { updateTask, deleteTask, updateTaskStatus } from '../../services/taskService';
-import CommentList from '../comments/CommentList';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
+import { updateTask, deleteTask, updateTaskStatus } from '../../services/taskService';
 import Modal from '../common/Modal';
-import Toggle from '../common/Toggle';
-import Button from '../common/Button';
-import ConfirmDialog from '../common/ConfirmDialog';
-import { ExclamationCircleIcon, CalendarIcon } from '../common/Icons';
+import CommentList from '../comments/CommentList';
+import { formatDistanceToNow } from 'date-fns';
+import { SpinnerIcon, CalendarIcon, TrashIcon, PencilIcon, ExclamationCircleIcon } from '../common/Icons';
+import './Tasks.css';
+import './TaskDetailModal.css';
 
 function TaskDetailModal({ task, onClose, onTaskUpdated }) {
   const [isEditing, setIsEditing] = useState(false);
@@ -16,37 +15,48 @@ function TaskDetailModal({ task, onClose, onTaskUpdated }) {
   const [status, setStatus] = useState(task.status);
   const [assignee, setAssignee] = useState(task.assignee?.email || '');
   const [dueDate, setDueDate] = useState(
-    task.dueDate ? format(new Date(task.dueDate), 'yyyy-MM-dd') : ''
+    task.dueDate ? new Date(task.dueDate).toISOString().split('T')[0] : ''
   );
-  const [error, setError] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [changingStatus, setChangingStatus] = useState(false);
-  const [showConfirmDelete, setShowConfirmDelete] = useState(false);
-  
-  // Additional settings with toggles
   const [isUrgent, setIsUrgent] = useState(task.isUrgent || false);
+  
+  const [error, setError] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showConfirmDelete, setShowConfirmDelete] = useState(false);
   
   const { currentUser } = useAuth();
   
-  // Check if current user is project owner
+  // Reset form when task changes
+  useEffect(() => {
+    setTitle(task.title);
+    setDescription(task.description || '');
+    setStatus(task.status);
+    setAssignee(task.assignee?.email || '');
+    setDueDate(
+      task.dueDate ? new Date(task.dueDate).toISOString().split('T')[0] : ''
+    );
+    setIsUrgent(task.isUrgent || false);
+    setIsEditing(false);
+    setError(null);
+  }, [task]);
+  
   const isProjectOwner = () => {
-    return task.project?.members?.some(
+    if (!task.project || !task.project.members) return false;
+    
+    return task.project.members.some(
       member => member.userId === currentUser?.uid && member.role === 'owner'
     );
   };
   
-  // Check if current user is task assignee
-  const isTaskAssignee = () => {
+  const isAssignee = () => {
     return task.assignee && task.assignee.userId === currentUser?.uid;
   };
-  
-  // Check if user can change task status
+
   const canChangeTaskStatus = () => {
-    return isProjectOwner() || isTaskAssignee();
+    return isProjectOwner() || isAssignee();
   };
   
-  const handleSubmit = async (e) => {
-    if (e) e.preventDefault();
+  const handleSave = async (e) => {
+    e.preventDefault();
     
     if (!title.trim()) {
       setError('Task title is required');
@@ -55,19 +65,16 @@ function TaskDetailModal({ task, onClose, onTaskUpdated }) {
     
     try {
       setIsSubmitting(true);
+      await updateTask(task._id, {
+        title,
+        description,
+        status,
+        assignee,
+        dueDate: dueDate || undefined,
+        isUrgent
+      });
       
-      // Build update object with only changed fields
-      const updates = {};
-      if (title !== task.title) updates.title = title;
-      if (description !== (task.description || '')) updates.description = description;
-      if (status !== task.status) updates.status = status;
-      if (assignee !== (task.assignee?.email || '')) updates.assignee = assignee || null;
-      if (dueDate !== (task.dueDate ? format(new Date(task.dueDate), 'yyyy-MM-dd') : '')) {
-        updates.dueDate = dueDate || null;
-      }
-      if (isUrgent !== (task.isUrgent || false)) updates.isUrgent = isUrgent;
-      
-      await updateTask(task._id, updates);
+      setIsEditing(false);
       onTaskUpdated();
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to update task');
@@ -80,288 +87,366 @@ function TaskDetailModal({ task, onClose, onTaskUpdated }) {
       setIsSubmitting(true);
       await deleteTask(task._id);
       onTaskUpdated();
+      onClose();
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to delete task');
       setIsSubmitting(false);
     }
   };
-  
+
   const handleStatusChange = async (e) => {
     try {
-      setChangingStatus(true);
+      setIsSubmitting(true);
       await updateTaskStatus(task._id, e.target.value);
       onTaskUpdated();
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to update status');
-    } finally {
-      setChangingStatus(false);
+      setError(err.response?.data?.message || 'Failed to update task status');
+      setIsSubmitting(false);
     }
   };
-
-  const formatDate = (dateString) => {
-    if (!dateString) return 'No due date';
+  
+  const formatDateDisplay = (dateString) => {
+    if (!dateString) return 'None';
     
     const date = new Date(dateString);
-    return format(date, 'MMMM d, yyyy');
+    const formatted = date.toLocaleDateString(undefined, {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+    
+    // Is it overdue?
+    const isOverdue = date < new Date() && task.status !== 'Done';
+    
+    return (
+      <span className={isOverdue ? 'overdue-date' : ''}>
+        {formatted}{' '}
+        <span className="date-relative">
+          ({formatDistanceToNow(date, { addSuffix: true })})
+        </span>
+        {isOverdue && <span className="overdue-badge">Overdue</span>}
+      </span>
+    );
+  };
+
+  // Generate avatar color based on email
+  const getAvatarColor = (email) => {
+    if (!email) return '#94a3b8';
+    
+    const colors = [
+      '#3b82f6', '#8b5cf6', '#ec4899', 
+      '#f97316', '#84cc16', '#06b6d4'
+    ];
+    
+    let hash = 0;
+    for (let i = 0; i < email.length; i++) {
+      hash = email.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    
+    return colors[Math.abs(hash) % colors.length];
+  };
+
+  const getDisplayName = (assignee) => {
+    if (!assignee) return 'Unassigned';
+    
+    // If name is available, use it
+    if (assignee.name) {
+      return assignee.name;
+    }
+    
+    // Otherwise use email without domain as fallback
+    return assignee.email ? assignee.email.split('@')[0] : 'Unknown';
   };
   
-  // View Mode Content
-  const renderViewMode = () => (
-    <>
-      <div className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="space-y-1">
-            <span className="text-xs uppercase font-medium text-gray-500 dark:text-gray-400">Status:</span>
-            {isTaskAssignee() ? (
-              <select
-                value={task.status}
-                onChange={handleStatusChange}
-                disabled={changingStatus}
-                className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-              >
-                {task.project?.statuses?.map(statusOption => (
-                  <option key={statusOption} value={statusOption}>
-                    {statusOption}
-                  </option>
-                ))}
-              </select>  
-            ) : (
-              <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-sm font-medium bg-primary-100 text-primary-800 dark:bg-primary-900 dark:text-primary-200">
-                {task.status}
-              </span>
-            )}
-          </div>
-          
-          <div className="space-y-1">
-            <span className="text-xs uppercase font-medium text-gray-500 dark:text-gray-400">Assignee:</span>
-            <div className="flex items-center">
-              <span className="text-gray-900 dark:text-gray-100">
-                {task.assignee?.email || 'Unassigned'}
-              </span>
-              {isProjectOwner() && (
-                <button 
-                  className="ml-2 text-primary-600 hover:text-primary-800 dark:text-primary-400 dark:hover:text-primary-300"
-                  onClick={() => setIsEditing(true)}
-                  title="Assign this task"
-                  type="button"
-                >
-                  <span className="text-sm">✎</span>
-                </button>
-              )}
-            </div>
-          </div>
-          
-          <div className="space-y-1">
-            <span className="text-xs uppercase font-medium text-gray-500 dark:text-gray-400">Due Date:</span>
-            <div className="flex items-center">
-              <CalendarIcon className="w-4 h-4 mr-1 text-gray-500 dark:text-gray-400" />
-              <span className="text-gray-900 dark:text-gray-100">{formatDate(task.dueDate)}</span>
-            </div>
-          </div>
-          
-          <div className="space-y-1">
-            <span className="text-xs uppercase font-medium text-gray-500 dark:text-gray-400">Created:</span>
-            <span className="text-gray-900 dark:text-gray-100">{formatDate(task.createdAt)}</span>
-          </div>
-
-          {task.isUrgent && (
-            <div className="space-y-1 col-span-2">
-              <span className="text-xs uppercase font-medium text-gray-500 dark:text-gray-400">Priority:</span>
-              <div className="flex items-center">
-                <ExclamationCircleIcon className="w-4 h-4 mr-1 text-danger-500" />
-                <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-sm font-medium bg-danger-100 text-danger-800 dark:bg-danger-900 dark:text-danger-200">
-                  Urgent
-                </span>
-              </div>
-            </div>
-          )}
-        </div>
-        
-        <div className="space-y-2">
-          <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">Description</h3>
-          <p className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{task.description || 'No description provided.'}</p>
-        </div>
-      </div>
-      
-      <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
-        <CommentList taskId={task._id} projectId={task.projectId} />
-      </div>
-    </>
-  );
-  
-  // Edit Mode Content
-  const renderEditMode = () => (
-    <form id="edit-task-form" onSubmit={(e) => { e.preventDefault(); handleSubmit(); }} className="space-y-4">
-      {error && (
-        <div className="bg-danger-50 border-l-4 border-danger-500 p-4 dark:bg-danger-900/30">
-          <div className="flex">
-            <ExclamationCircleIcon className="h-5 w-5 text-danger-500" />
-            <div className="ml-3">
-              <p className="text-sm text-danger-700 dark:text-danger-200">{error}</p>
-            </div>
-          </div>
-        </div>
-      )}
-      
-      <div>
-        <label htmlFor="title" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-          Task Title *
-        </label>
-        <input
-          type="text"
-          id="title"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          placeholder="Enter task title"
-          required
-          className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-        />
-      </div>
-      
-      <div>
-        <label htmlFor="description" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-          Description
-        </label>
-        <textarea
-          id="description"
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          placeholder="Enter task description"
-          rows={4}
-          className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-        ></textarea>
-      </div>
-      
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <label htmlFor="status" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-            Status
-          </label>
-          <select
-            id="status"
-            value={status}
-            onChange={(e) => setStatus(e.target.value)}
-            className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-          >
-            {task.project?.statuses?.map(statusOption => (
-              <option key={statusOption} value={statusOption}>
-                {statusOption}
-              </option>
-            ))}
-          </select>
-        </div>
-        
-        <div>
-          <label htmlFor="dueDate" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-            Due Date
-          </label>
-          <input
-            type="date"
-            id="dueDate"
-            value={dueDate}
-            onChange={(e) => setDueDate(e.target.value)}
-            className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-          />
-        </div>
-      </div>
-      
-      <div>
-        <label htmlFor="assignee" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-          Assignee (Email)
-        </label>
-        <select
-          id="assignee"
-          value={assignee}
-          onChange={(e) => setAssignee(e.target.value)}
-          className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-        >
-          <option value="">Unassigned</option>
-          {task.project?.members?.map(member => (
-            <option key={member.email} value={member.email}>
-              {member.email}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      <div className="py-2">
-        <Toggle 
-          checked={isUrgent}
-          onChange={(e) => setIsUrgent(e.target.checked)}
-          label="Mark as urgent"
-          id="task-urgent-toggle"
-          labelPosition="right"
-        />
-      </div>
-    </form>
-  );
-  
-  // Modal footer based on mode
-  const renderFooter = () => {
-    if (isEditing) {
-      return (
-        <>
-          <Button 
-            variant="secondary" 
-            onClick={() => setIsEditing(false)}
+  const modalFooter = isProjectOwner() ? (
+    <div className="task-modal-actions">
+      {showConfirmDelete ? (
+        <div className="delete-confirmation">
+          <span>Are you sure?</span>
+          <button 
+            onClick={() => setShowConfirmDelete(false)}
+            className="modal-secondary-btn"
             disabled={isSubmitting}
           >
             Cancel
-          </Button>
-          <Button 
-            type="submit"
-            form="edit-task-form"
+          </button>
+          <button 
+            onClick={handleDelete}
+            className="modal-danger-btn"
             disabled={isSubmitting}
           >
-            {isSubmitting ? 'Saving...' : 'Save Changes'}
-          </Button>
+            {isSubmitting ? 'Deleting...' : 'Delete Task'}
+          </button>
+        </div>
+      ) : (
+        <>
+          <button
+            type="button" 
+            onClick={() => setShowConfirmDelete(true)}
+            className="modal-danger-btn"
+            disabled={isEditing}
+          >
+            <TrashIcon className="w-4 h-4" />
+            Delete Task
+          </button>
+          
+          <div className="spacer"></div>
+          
+          {isEditing ? (
+            <>
+              <button 
+                type="button" 
+                onClick={() => setIsEditing(false)}
+                className="modal-secondary-btn"
+                disabled={isSubmitting}
+              >
+                Cancel
+              </button>
+              <button 
+                type="submit"
+                form="edit-task-form"
+                className="modal-primary-btn"
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? (
+                  <>
+                    <SpinnerIcon className="w-4 h-4" />
+                    Saving...
+                  </>
+                ) : 'Save Changes'}
+              </button>
+            </>
+          ) : (
+            <button 
+              onClick={() => setIsEditing(true)}
+              className="modal-primary-btn"
+            >
+              <PencilIcon className="w-4 h-4" />
+              Edit Task
+            </button>
+          )}
         </>
-      );
-    }
-    
-    return isProjectOwner() && (
-      <>
-        <Button 
-          variant="danger"
-          onClick={() => setShowConfirmDelete(true)}
-          disabled={isSubmitting}
-        >
-          Delete
-        </Button>
-        <Button 
-          onClick={() => setIsEditing(true)}
-          disabled={isSubmitting}
-        >
-          Edit
-        </Button>
-      </>
-    );
-  };
+      )}
+    </div>
+  ) : null;
   
   return (
-    <>
-      <Modal 
-        isOpen={true}
-        onClose={onClose}
-        title={isEditing ? "Edit Task" : task.title}
-        size="large"
-        className="task-detail-modal"
-        footer={renderFooter()}
-      >
-        {isEditing ? renderEditMode() : renderViewMode()}
-      </Modal>
+    <Modal
+      isOpen={true}
+      onClose={onClose}
+      title={
+        isEditing ? (
+          <div className="editing-indicator">
+            <PencilIcon className="w-5 h-5" />
+            Edit Task
+          </div>
+        ) : (
+          <div className="task-modal-title">
+            <span>{task.title}</span>
+            {task.isUrgent && <span className="task-urgent-flag">Urgent</span>}
+          </div>
+        )
+      }
+      size="large"
+      footer={modalFooter}
+    >
+      <div className="task-detail-content">
+        {error && (
+          <div className="error-message">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="12" y1="8" x2="12" y2="12"></line>
+              <line x1="12" y1="16" x2="12.01" y2="16"></line>
+            </svg>
+            {error}
+          </div>
+        )}
+        
+        {isEditing ? (
+          <form id="edit-task-form" onSubmit={handleSave}>
+            <div className="form-group">
+              <label htmlFor="title">Task Title *</label>
+              <input
+                id="title"
+                type="text"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="Enter task title"
+                required
+                className="task-input"
+                autoFocus
+              />
+            </div>
+            
+            <div className="form-group">
+              <label htmlFor="description">Description</label>
+              <textarea
+                id="description"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="Enter task description"
+                rows={5}
+                className="task-input"
+              ></textarea>
+            </div>
+            
+            <div className="form-row">
+              <div className="form-group">
+                <label htmlFor="status">Status</label>
+                <select
+                  id="status"
+                  value={status}
+                  onChange={(e) => setStatus(e.target.value)}
+                  className="task-select"
+                >
+                  {task.project.statuses.map(statusOption => (
+                    <option key={statusOption} value={statusOption}>
+                      {statusOption}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              
+              <div className="form-group">
+                <label htmlFor="dueDate">Due Date</label>
+                <input
+                  id="dueDate"
+                  type="date"
+                  value={dueDate}
+                  onChange={(e) => setDueDate(e.target.value)}
+                  className="task-input"
+                />
+              </div>
+            </div>
+            
+            <div className="form-group">
+              <label htmlFor="assignee">Assignee</label>
+              <select
+                id="assignee"
+                value={assignee}
+                onChange={(e) => setAssignee(e.target.value)}
+                className="task-select"
+              >
+                <option value="">Unassigned</option>
+                {task.project.members.map(member => (
+                  <option key={member.email} value={member.email}>
+                    {member.email}
+                  </option>
+                ))}
+              </select>
+            </div>
+            
+            <div className="form-group checkbox-group">
+              <div className="checkbox-item">
+                <input
+                  type="checkbox"
+                  id="isUrgent"
+                  checked={isUrgent}
+                  onChange={(e) => setIsUrgent(e.target.checked)}
+                />
+                <label htmlFor="isUrgent">Mark as urgent</label>
+              </div>
+            </div>
+          </form>
+        ) : (
+          <>
+            <div className="task-meta-section">
+              <div className="task-meta-item">
+                <span className="meta-label">Status</span>
+                {isAssignee() ? (
+                  <select
+                    value={task.status}
+                    onChange={handleStatusChange}
+                    disabled={isSubmitting}
+                    className="task-select"
+                  >
+                    {task.project?.statuses?.map(statusOption => (
+                      <option key={statusOption} value={statusOption}>
+                        {statusOption}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <span className={`meta-value status-badge status-${status.toLowerCase().replace(/\s+/g, '-')}`}>
+                    {status}
+                  </span>
+                )}
+              </div>
+              
+              <div className="task-meta-item">
+                <span className="meta-label">Due Date</span>
+                <span className="meta-value">
+                  {task.dueDate ? (
+                    <span className="due-date-value">
+                      <CalendarIcon className="w-4 h-4" />
+                      {formatDateDisplay(task.dueDate)}
+                    </span>
+                  ) : (
+                    <span className="no-date">No due date</span>
+                  )}
+                </span>
+              </div>
+              
+              <div className="task-meta-item">
+                <span className="meta-label">Assignee</span>
+                <span className="meta-value">
+                  {task.assignee ? (
+                    <div className="assignee-info">
+                      <div 
+                        className="assignee-avatar"
+                        style={{ backgroundColor: getAvatarColor(task.assignee.email) }}
+                      >
+                        {task.assignee.email.charAt(0).toUpperCase()}
+                      </div>
+                      <span className="assignee-email">
+                        {task.assignee.email}
+                        {task.assignee.userId === currentUser?.uid && (
+                          <span className="assigned-to-me-tag">You</span>
+                        )}
+                      </span>
+                    </div>
+                  ) : (
+                    <span className="unassigned">Unassigned</span>
+                  )}
+                </span>
+              </div>
+              
+              <div className="task-meta-item">
+                <span className="meta-label">Created</span>
+                <span className="meta-value">
+                  {formatDistanceToNow(new Date(task.createdAt), { addSuffix: true })}
+                </span>
+              </div>
 
-      <ConfirmDialog
-        isOpen={showConfirmDelete}
-        onClose={() => setShowConfirmDelete(false)}
-        title="Delete Task"
-        message="Are you sure you want to delete this task? This action cannot be undone."
-        confirmLabel="Delete"
-        cancelLabel="Cancel"
-        onConfirm={handleDelete}
-        confirmStyle="danger"
-      />
-    </>
+              {task.isUrgent && (
+                <div className="task-meta-item">
+                  <span className="meta-label">Priority</span>
+                  <div className="flex items-center">
+                    <ExclamationCircleIcon className="w-4 h-4 mr-1 text-danger-500" />
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-sm font-medium bg-danger-100 text-danger-800 dark:bg-danger-900 dark:text-danger-200">
+                      Urgent
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
+            
+            <div className="task-description-section">
+              <h3>Description</h3>
+              {task.description ? (
+                <p className="task-description-text">{task.description}</p>
+              ) : (
+                <p className="no-description">No description provided</p>
+              )}
+            </div>
+          </>
+        )}
+        
+        <div className="task-comments-section">
+          <CommentList taskId={task._id} projectId={task.projectId} />
+        </div>
+      </div>
+    </Modal>
   );
 }
 

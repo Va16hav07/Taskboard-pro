@@ -9,6 +9,7 @@ function NewTaskModal({ project, onClose, onTaskCreated }) {
   const [status, setStatus] = useState(project.statuses[0]);
   const [assignee, setAssignee] = useState('');
   const [dueDate, setDueDate] = useState('');
+  const [isUrgent, setIsUrgent] = useState(false);
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   
@@ -28,7 +29,8 @@ function NewTaskModal({ project, onClose, onTaskCreated }) {
         projectId: project._id,
         status,
         assignee,
-        dueDate: dueDate || undefined
+        dueDate: dueDate || undefined,
+        isUrgent
       });
       onTaskCreated();
     } catch (err) {
@@ -41,19 +43,27 @@ function NewTaskModal({ project, onClose, onTaskCreated }) {
     <>
       <button 
         type="button" 
-        className="modal-secondary-btn" 
+        className="cancel-btn" 
         onClick={onClose}
         disabled={isSubmitting}
       >
         Cancel
       </button>
       <button 
-        type="button"
-        onClick={handleSubmit}
-        className="modal-primary-btn" 
-        disabled={isSubmitting}
+        type="submit" 
+        form="new-task-form" 
+        className="submit-btn" 
+        disabled={isSubmitting || !title.trim()}
       >
-        {isSubmitting ? 'Creating...' : 'Create Task'}
+        {isSubmitting ? (
+          <>
+            <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            Creating...
+          </>
+        ) : 'Create Task'}
       </button>
     </>
   );
@@ -62,12 +72,29 @@ function NewTaskModal({ project, onClose, onTaskCreated }) {
     <Modal
       isOpen={true}
       onClose={onClose}
-      title="Create New Task"
+      title={
+        <div className="flex items-center gap-2">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="12" y1="5" x2="12" y2="19"></line>
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+          </svg>
+          Create New Task
+        </div>
+      }
       size="medium"
       footer={modalFooter}
     >
-      <form id="new-task-form">
-        {error && <div className="error-message">{error}</div>}
+      <form id="new-task-form" onSubmit={handleSubmit}>
+        {error && (
+          <div className="error-message">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="12" y1="8" x2="12" y2="12"></line>
+              <line x1="12" y1="16" x2="12.01" y2="16"></line>
+            </svg>
+            {error}
+          </div>
+        )}
         
         <div className="form-group">
           <label htmlFor="title">Task Title *</label>
@@ -90,7 +117,7 @@ function NewTaskModal({ project, onClose, onTaskCreated }) {
             onChange={(e) => setDescription(e.target.value)}
             placeholder="Enter task description"
             rows={4}
-          ></textarea>
+          />
         </div>
         
         <div className="form-row">
@@ -122,7 +149,7 @@ function NewTaskModal({ project, onClose, onTaskCreated }) {
         </div>
         
         <div className="form-group">
-          <label htmlFor="assignee">Assignee (Email)</label>
+          <label htmlFor="assignee">Assignee</label>
           <select
             id="assignee"
             value={assignee}
@@ -135,6 +162,19 @@ function NewTaskModal({ project, onClose, onTaskCreated }) {
               </option>
             ))}
           </select>
+          <small className="text-muted">The assigned person will receive a notification</small>
+        </div>
+        
+        <div className="toggle-container">
+          <input
+            type="checkbox"
+            id="isUrgent"
+            checked={isUrgent}
+            onChange={(e) => setIsUrgent(e.target.checked)}
+          />
+          <label htmlFor="isUrgent" className="ml-2 text-sm">
+            Mark as urgent
+          </label>
         </div>
       </form>
     </Modal>

@@ -43,7 +43,6 @@ function Kanban({ project, isOwner }) {
       const data = await getProjectTasks(project._id);
       // Enhance tasks with project data
       const enhancedTasks = enhanceTasksWithProjectData(data);
-      console.log('Fetched tasks:', enhancedTasks);
       setTasks(enhancedTasks);
       setError(null);
     } catch (err) {
@@ -64,15 +63,35 @@ function Kanban({ project, isOwner }) {
     if (socket) {
       socket.on('task-created', (newTask) => {
         if (newTask.projectId === project._id) {
-          setTasks(prevTasks => [...prevTasks, newTask]);
+          // Enhance the new task with project data
+          const enhancedTask = {
+            ...newTask,
+            project: {
+              _id: project._id,
+              title: project.title,
+              statuses: project.statuses,
+              members: project.members
+            }
+          };
+          setTasks(prevTasks => [...prevTasks, enhancedTask]);
         }
       });
       
       socket.on('task-updated', (updatedTask) => {
         if (updatedTask.projectId === project._id) {
+          // Enhance the updated task with project data
+          const enhancedTask = {
+            ...updatedTask,
+            project: {
+              _id: project._id,
+              title: project.title,
+              statuses: project.statuses,
+              members: project.members
+            }
+          };
           setTasks(prevTasks => 
             prevTasks.map(task => 
-              task._id === updatedTask._id ? updatedTask : task
+              task._id === enhancedTask._id ? enhancedTask : task
             )
           );
         }
@@ -104,12 +123,9 @@ function Kanban({ project, isOwner }) {
         socket.off('comment-added');
       }
     };
-  }, [project._id, socket]);
+  }, [project._id, socket, joinProject, leaveProject]);
   
   const handleDragStart = (e, taskId) => {
-    const task = tasks.find(t => t._id === taskId);
-    console.log('Drag started for task:', task);
-    
     // Add the task ID as data
     e.dataTransfer.setData('taskId', taskId);
     
@@ -117,25 +133,39 @@ function Kanban({ project, isOwner }) {
     e.dataTransfer.effectAllowed = 'move';
   };
   
-  const handleDragOver = (e) => {
+  const handleDragOver = (e, status) => {
     e.preventDefault();
     e.dataTransfer.dropEffect = 'move';
+    
+    // Add visual indication for the drop target
+    e.currentTarget.classList.add('drag-over');
+  };
+
+  const handleDragLeave = (e) => {
+    // Remove visual indication when dragging leaves
+    e.currentTarget.classList.remove('drag-over');
   };
   
   const handleDrop = async (e, status) => {
     e.preventDefault();
+    // Remove visual indication
+    e.currentTarget.classList.remove('drag-over');
+    
     const taskId = e.dataTransfer.getData('taskId');
-    
     if (!taskId) return;
-    
-    console.log(`Attempting to move task ${taskId} to ${status}`);
     
     try {
       await updateTaskStatus(taskId, status);
-      console.log('Status updated successfully');
-      fetchTasks();
+      
+      // Optimistically update the UI before the task update comes via socket
+      setTasks(prevTasks => 
+        prevTasks.map(task => 
+          task._id === taskId ? { ...task, status } : task
+        )
+      );
     } catch (err) {
       console.error('Error moving task:', err);
+      fetchTasks(); // Refresh on error to ensure UI is in sync
     }
   };
   
@@ -150,12 +180,7 @@ function Kanban({ project, isOwner }) {
   };
 
   const handleTaskClick = (task) => {
-    // Ensure the task has project information
-    const taskWithProject = {
-      ...task,
-      project: project
-    };
-    setSelectedTask(taskWithProject);
+    setSelectedTask(task);
   };
   
   const handleCloseTaskDetail = () => {
@@ -168,7 +193,11 @@ function Kanban({ project, isOwner }) {
   };
   
   if (loading) {
-    return <div className="loading-spinner">Loading tasks...</div>;
+    return (
+      <div className="loading-spinner">
+        Loading tasks...
+      </div>
+    );
   }
   
   // Group tasks by status
@@ -180,7 +209,14 @@ function Kanban({ project, isOwner }) {
   return (
     <div className="kanban-container">
       <div className="kanban-header">
-        <h2>Tasks</h2>
+        <h2>
+          <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+            <rect x="7" y="7" width="3" height="9"></rect>
+            <rect x="14" y="7" width="3" height="5"></rect>
+          </svg>
+          Tasks Board
+        </h2>
         <div className="kanban-actions">
           {isOwner && (
             <>
@@ -188,27 +224,46 @@ function Kanban({ project, isOwner }) {
                 className="edit-statuses-btn"
                 onClick={() => setShowEditStatusesModal(true)}
               >
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 20h9"></path>
+                  <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+                </svg>
                 Edit Statuses
               </button>
               <button 
                 className="new-task-btn"
                 onClick={() => setShowNewTaskModal(true)}
               >
-                + New Task
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="12" y1="5" x2="12" y2="19"></line>
+                  <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
+                New Task
               </button>
             </>
           )}
         </div>
       </div>
       
-      {error && <div className="error-message">{error}</div>}
+      {error && (
+        <div className="error-message">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="8" x2="12" y2="12"></line>
+            <line x1="12" y1="16" x2="12.01" y2="16"></line>
+          </svg>
+          {error}
+        </div>
+      )}
       
       <div className="kanban-board">
-        {project.statuses.map(status => (
+        {project.statuses.map((status, index) => (
           <div 
             key={status}
             className="kanban-column"
-            onDragOver={handleDragOver}
+            style={{ '--animation-order': index }}
+            onDragOver={(e) => handleDragOver(e, status)}
+            onDragLeave={handleDragLeave}
             onDrop={(e) => handleDrop(e, status)}
           >
             <div className="column-header">
@@ -217,17 +272,20 @@ function Kanban({ project, isOwner }) {
             </div>
             <div className="task-list">
               {tasksByStatus[status] && tasksByStatus[status].length > 0 ? (
-                tasksByStatus[status].map(task => (
+                tasksByStatus[status].map((task, taskIndex) => (
                   <TaskCard 
                     key={task._id} 
                     task={task}
                     onTaskUpdated={fetchTasks}
                     onDragStart={handleDragStart}
                     onClick={handleTaskClick}
+                    style={{ '--animation-order': taskIndex }}
                   />
                 ))
               ) : (
-                <div className="empty-column">No tasks</div>
+                <div className="empty-column">
+                  Drop tasks here
+                </div>
               )}
             </div>
           </div>

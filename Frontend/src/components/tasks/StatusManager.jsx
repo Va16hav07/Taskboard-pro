@@ -1,84 +1,129 @@
 import { useState } from 'react';
 import { updateProjectStatuses, deleteProjectStatus } from '../../services/taskService';
-import '../projects/Projects.css';
+import { SpinnerIcon, PlusIcon } from '../common/Icons';
+import './Tasks.css';
 
 function StatusManager({ project, onStatusesUpdated, isOwner }) {
-  const [statuses, setStatuses] = useState(project.statuses || []);
+  const [statuses, setStatuses] = useState([...project.statuses]);
   const [newStatus, setNewStatus] = useState('');
-  const [error, setError] = useState('');
+  const [error, setError] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  
+  const [draggedStatus, setDraggedStatus] = useState(null);
+
   const handleAddStatus = () => {
     if (!newStatus.trim()) {
       setError('Status name cannot be empty');
       return;
     }
-    
+
     if (statuses.includes(newStatus.trim())) {
-      setError('Status already exists');
+      setError('This status already exists');
       return;
     }
-    
-    if (statuses.length >= 4) {
-      setError('Maximum of 4 statuses are allowed');
+
+    if (statuses.length >= 10) {
+      setError('Maximum of 10 statuses allowed');
       return;
     }
-    
+
     setStatuses([...statuses, newStatus.trim()]);
     setNewStatus('');
-    setError('');
+    setError(null);
   };
-  
-  const handleDeleteStatus = async (statusToDelete) => {
+
+  const handleRemoveStatus = async (statusToRemove) => {
     if (statuses.length <= 1) {
-      setError('Cannot delete the last status. Projects must have at least one status.');
+      setError('Cannot remove the last status. Projects must have at least one status.');
       return;
     }
-    
-    if (window.confirm(`Are you sure you want to delete the status "${statusToDelete}"? All tasks with this status will be moved to another status.`)) {
-      try {
-        setIsSubmitting(true);
-        await deleteProjectStatus(project._id, statusToDelete);
-        
-        // Update local state
-        setStatuses(statuses.filter(status => status !== statusToDelete));
-        onStatusesUpdated();
-      } catch (err) {
-        setError(err.response?.data?.message || 'Failed to delete status');
-        console.error(err);
-      } finally {
-        setIsSubmitting(false);
-      }
-    }
-  };
-  
-  const handleSaveStatuses = async () => {
-    if (statuses.length === 0) {
-      setError('At least one status is required');
-      return;
-    }
-    
+
     try {
       setIsSubmitting(true);
-      await updateProjectStatuses(project._id, statuses);
-      setError('');
+      await deleteProjectStatus(project._id, statusToRemove);
       onStatusesUpdated();
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to update statuses');
-      console.error(err);
+      setError(err.response?.data?.message || 'Failed to delete status');
     } finally {
       setIsSubmitting(false);
     }
   };
-  
+
+  const handleMoveUp = (index) => {
+    if (index === 0) return;
+    
+    const newStatuses = [...statuses];
+    [newStatuses[index - 1], newStatuses[index]] = [newStatuses[index], newStatuses[index - 1]];
+    setStatuses(newStatuses);
+  };
+
+  const handleMoveDown = (index) => {
+    if (index === statuses.length - 1) return;
+    
+    const newStatuses = [...statuses];
+    [newStatuses[index], newStatuses[index + 1]] = [newStatuses[index + 1], newStatuses[index]];
+    setStatuses(newStatuses);
+  };
+
+  const handleSaveChanges = async () => {
+    if (statuses.length === 0) {
+      setError('Projects must have at least one status');
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      await updateProjectStatuses(project._id, statuses);
+      onStatusesUpdated();
+      setError(null);
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to update statuses');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleDragStart = (e, status, index) => {
+    setDraggedStatus({ status, index });
+    e.dataTransfer.effectAllowed = 'move';
+    // Needed for Firefox
+    e.dataTransfer.setData('text/plain', status);
+  };
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+  };
+
+  const handleDrop = (e, targetIndex) => {
+    e.preventDefault();
+    
+    if (draggedStatus === null) return;
+    
+    const { index: sourceIndex } = draggedStatus;
+    if (sourceIndex === targetIndex) return;
+    
+    const newStatuses = [...statuses];
+    const [movedStatus] = newStatuses.splice(sourceIndex, 1);
+    newStatuses.splice(targetIndex, 0, movedStatus);
+    
+    setStatuses(newStatuses);
+    setDraggedStatus(null);
+  };
+
   if (!isOwner) {
-    return null;
+    return (
+      <div className="no-access-message">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+          <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+        </svg>
+        <p>Only project owners can manage statuses</p>
+      </div>
+    );
   }
-  
+
   return (
     <div className="status-manager">
-      <h3>Manage Statuses</h3>
-      
       {error && (
         <div className="error-message">
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -90,21 +135,59 @@ function StatusManager({ project, onStatusesUpdated, isOwner }) {
         </div>
       )}
       
+      <p className="note">
+        <strong>Note:</strong> Rearrange statuses by dragging them or using the arrow buttons. Changes to statuses will be reflected immediately in the task board.
+      </p>
+      
       <div className="status-list">
         {statuses.map((status, index) => (
-          <div key={index} className="status-item">
+          <div 
+            key={`status-${index}`}
+            className="status-item"
+            draggable
+            onDragStart={(e) => handleDragStart(e, status, index)}
+            onDragOver={handleDragOver}
+            onDrop={(e) => handleDrop(e, index)}
+          >
             <span className="status-name">{status}</span>
-            <button 
-              type="button" 
-              className="delete-status-btn" 
-              onClick={() => handleDeleteStatus(status)}
-              disabled={isSubmitting || statuses.length <= 1}
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="18" y1="6" x2="6" y2="18"></line>
-                <line x1="6" y1="6" x2="18" y2="18"></line>
-              </svg>
-            </button>
+            <div className="status-actions">
+              <button 
+                type="button"
+                className="icon-btn"
+                onClick={() => handleMoveUp(index)}
+                disabled={index === 0 || isSubmitting}
+                title="Move up"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 19V5" />
+                  <path d="M5 12l7-7 7 7" />
+                </svg>
+              </button>
+              <button 
+                type="button"
+                className="icon-btn"
+                onClick={() => handleMoveDown(index)}
+                disabled={index === statuses.length - 1 || isSubmitting}
+                title="Move down"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 5v14" />
+                  <path d="M19 12l-7 7-7-7" />
+                </svg>
+              </button>
+              <button 
+                type="button"
+                className="icon-btn remove"
+                onClick={() => handleRemoveStatus(status)}
+                disabled={statuses.length <= 1 || isSubmitting}
+                title="Delete status"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M3 6h18"></path>
+                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                </svg>
+              </button>
+            </div>
           </div>
         ))}
       </div>
@@ -112,49 +195,34 @@ function StatusManager({ project, onStatusesUpdated, isOwner }) {
       <div className="add-status-form">
         <input
           type="text"
+          placeholder="New status name..."
           value={newStatus}
           onChange={(e) => setNewStatus(e.target.value)}
-          placeholder="New status name"
-          disabled={isSubmitting || statuses.length >= 4}
+          disabled={isSubmitting || statuses.length >= 10}
         />
         <button 
           type="button" 
           className="add-status-btn"
           onClick={handleAddStatus}
-          disabled={isSubmitting || statuses.length >= 4}
+          disabled={!newStatus.trim() || isSubmitting || statuses.length >= 10}
         >
-          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <line x1="12" y1="5" x2="12" y2="19"></line>
-            <line x1="5" y1="12" x2="19" y2="12"></line>
-          </svg>
+          <PlusIcon className="w-4 h-4" />
           Add Status
         </button>
       </div>
       
-      {statuses.length >= 10 && (
-        <div className="status-limit-warning">
-          You've reached the maximum of 10 statuses.
-        </div>
-      )}
-      
       <div className="status-actions">
         <button 
-          type="button" 
-          className="save-btn"
-          onClick={handleSaveStatuses}
-          disabled={isSubmitting}
+          className="submit-btn"
+          onClick={handleSaveChanges}
+          disabled={isSubmitting || statuses.length === 0}
         >
           {isSubmitting ? (
             <>
-              <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-              </svg>
+              <SpinnerIcon className="w-4 h-4" />
               Saving...
             </>
-          ) : (
-            <>Save Changes</>
-          )}
+          ) : 'Save Changes'}
         </button>
       </div>
     </div>

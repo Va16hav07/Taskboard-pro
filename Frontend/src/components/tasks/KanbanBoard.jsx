@@ -1,40 +1,106 @@
 import { useState, useEffect } from 'react';
+import { getProjectTasks, updateTaskStatus } from '../../services/taskService';
 import TaskCard from './TaskCard';
-import NewTaskModal from './NewTaskModal';
-import StatusManagementModal from './StatusManagementModal';
-import Button from '../common/Button';
+import { SpinnerIcon } from '../common/Icons';
+import './Tasks.css';
 
-function KanbanBoard({ project }) {
+function KanbanBoard({ project, onTaskSelected, onTasksUpdated }) {
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [showNewTaskModal, setShowNewTaskModal] = useState(false);
-  const [showStatusModal, setShowStatusModal] = useState(false);
-  const [draggedTaskId, setDraggedTaskId] = useState(null);
+  const [activeDragTask, setActiveDragTask] = useState(null);
   
-  // Fetch tasks (placeholder for actual implementation)
+  const fetchTasks = async () => {
+    try {
+      setLoading(true);
+      const data = await getProjectTasks(project._id);
+      // Add animation order to tasks
+      const enhancedTasks = data.map((task, index) => ({
+        ...task,
+        animationOrder: index
+      }));
+      setTasks(enhancedTasks);
+      setError(null);
+      if (onTasksUpdated) onTasksUpdated(enhancedTasks);
+    } catch (err) {
+      setError('Failed to load tasks');
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+  
   useEffect(() => {
-    // ... fetch tasks code
+    fetchTasks();
   }, [project._id]);
   
   const handleDragStart = (e, taskId) => {
-    setDraggedTaskId(taskId);
+    setActiveDragTask(taskId);
+    e.dataTransfer.setData('taskId', taskId);
+    e.dataTransfer.effectAllowed = 'move';
+    // Add dragging class to the element for styling
+    e.target.classList.add('dragging');
+    
+    // Create a drag image
+    const dragImage = e.target.cloneNode(true);
+    dragImage.style.opacity = '0.7';
+    dragImage.style.position = 'absolute';
+    dragImage.style.top = '-1000px';
+    document.body.appendChild(dragImage);
+    e.dataTransfer.setDragImage(dragImage, 20, 20);
+    
+    // Remove the drag image after it's been used
+    setTimeout(() => {
+      document.body.removeChild(dragImage);
+    }, 0);
   };
   
   const handleDragOver = (e, status) => {
     e.preventDefault();
-    e.currentTarget.classList.add('bg-gray-100', 'dark:bg-gray-700/50');
+    e.dataTransfer.dropEffect = 'move';
+    // Add visual indication for the drop target
+    e.currentTarget.classList.add('drag-over');
   };
   
   const handleDragLeave = (e) => {
-    e.currentTarget.classList.remove('bg-gray-100', 'dark:bg-gray-700/50');
+    e.currentTarget.classList.remove('drag-over');
   };
   
-  const handleDrop = (e, status) => {
+  const handleDragEnd = (e) => {
+    e.target.classList.remove('dragging');
+    setActiveDragTask(null);
+    // Clean up any remaining drag-over classes
+    document.querySelectorAll('.drag-over').forEach(el => {
+      el.classList.remove('drag-over');
+    });
+  };
+  
+  const handleDrop = async (e, status) => {
     e.preventDefault();
-    e.currentTarget.classList.remove('bg-gray-100', 'dark:bg-gray-700/50');
+    e.currentTarget.classList.remove('drag-over');
     
-    // Update task status code here
+    const taskId = e.dataTransfer.getData('taskId');
+    if (!taskId) return;
+    
+    const taskToUpdate = tasks.find(task => task._id === taskId);
+    if (!taskToUpdate || taskToUpdate.status === status) return;
+    
+    try {
+      // Optimistically update the UI
+      setTasks(prevTasks => 
+        prevTasks.map(task => 
+          task._id === taskId ? { ...task, status } : task
+        )
+      );
+      
+      // Make API call to update status
+      await updateTaskStatus(taskId, status);
+      fetchTasks(); // Refresh to get any other changes
+    } catch (err) {
+      console.error('Error moving task:', err);
+      // Revert the optimistic update on failure
+      fetchTasks();
+    }
   };
   
   // Group tasks by status
@@ -43,106 +109,52 @@ function KanbanBoard({ project }) {
     tasksByStatus[status] = tasks.filter(task => task.status === status);
   });
   
-  return (
-    <div className="mt-6">
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{project.name} Tasks</h2>
-        
-        <div className="flex space-x-3">
-          <Button
-            onClick={() => setShowNewTaskModal(true)}
-            variant="primary"
-            icon={
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-              </svg>
-            }
-          >
-            New Task
-          </Button>
-          
-          <Button
-            onClick={() => setShowStatusModal(true)}
-            variant="secondary"
-          >
-            Manage Statuses
-          </Button>
-        </div>
+  if (loading) {
+    return (
+      <div className="loading-spinner">
+        <SpinnerIcon className="w-8 h-8" />
+        <span>Loading tasks...</span>
       </div>
-      
-      {loading ? (
-        <div className="flex justify-center items-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
-        </div>
-      ) : error ? (
-        <div className="bg-red-50 dark:bg-red-900/10 p-4 rounded-md text-red-800 dark:text-red-300">
-          {error}
-        </div>
-      ) : (
-        <div className="flex space-x-4 overflow-x-auto pb-4 snap-x">
-          {project.statuses.map(status => (
-            <div
-              key={status}
-              className="min-w-[300px] w-[300px] bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 flex flex-col max-h-[600px] snap-start"
-            >
-              <div className="p-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/80 sticky top-0 z-10 rounded-t-lg">
-                <div className="flex justify-between items-center">
-                  <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
-                    {status}
-                  </h3>
-                  <span className="bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 text-xs font-medium px-2 py-1 rounded-full">
-                    {tasksByStatus[status].length}
-                  </span>
-                </div>
+    );
+  }
+  
+  return (
+    <div className="kanban-board">
+      {project.statuses.map((status, columnIndex) => (
+        <div 
+          key={status}
+          className="kanban-column"
+          style={{ '--animation-order': columnIndex }}
+          onDragOver={(e) => handleDragOver(e, status)}
+          onDragLeave={handleDragLeave}
+          onDrop={(e) => handleDrop(e, status)}
+        >
+          <div className="column-header">
+            <h3>{status}</h3>
+            <span className="task-count">{tasksByStatus[status]?.length || 0}</span>
+          </div>
+          
+          <div className="task-list">
+            {tasksByStatus[status] && tasksByStatus[status].length > 0 ? (
+              tasksByStatus[status].map((task, taskIndex) => (
+                <TaskCard 
+                  key={task._id} 
+                  task={task}
+                  onDragStart={handleDragStart}
+                  onDragEnd={handleDragEnd}
+                  onClick={() => onTaskSelected(task)}
+                  animationOrder={taskIndex}
+                  isDragging={activeDragTask === task._id}
+                />
+              ))
+            ) : (
+              <div className="empty-column">
+                Drop tasks here
               </div>
-              
-              <div 
-                className="p-3 overflow-y-auto flex-1 space-y-2 transition-colors"
-                onDragOver={(e) => handleDragOver(e, status)}
-                onDragLeave={handleDragLeave}
-                onDrop={(e) => handleDrop(e, status)}
-              >
-                {tasksByStatus[status].length > 0 ? (
-                  tasksByStatus[status].map(task => (
-                    <TaskCard
-                      key={task._id}
-                      task={task}
-                      onTaskUpdated={() => fetchTasks()}
-                      onDragStart={handleDragStart}
-                    />
-                  ))
-                ) : (
-                  <div className="text-center py-8 text-gray-500 dark:text-gray-400 italic">
-                    No tasks yet
-                  </div>
-                )}
-              </div>
-            </div>
-          ))}
+            )}
+          </div>
         </div>
-      )}
-      
-      {showNewTaskModal && (
-        <NewTaskModal
-          project={project}
-          onClose={() => setShowNewTaskModal(false)}
-          onTaskCreated={() => {
-            fetchTasks();
-            setShowNewTaskModal(false);
-          }}
-        />
-      )}
-      
-      {showStatusModal && (
-        <StatusManagementModal
-          project={project}
-          onClose={() => setShowStatusModal(false)}
-          onStatusesUpdated={() => {
-            // Refresh project data
-            setShowStatusModal(false);
-          }}
-        />
-      )}
+      ))}
     </div>
   );
 }
