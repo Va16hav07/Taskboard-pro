@@ -111,3 +111,13 @@ export const deleteProject = async (projectId) => {
     throw error;
   }
 };
+
+// Get recent projects
+export const getRecentProjects = async (limit = 4) => {
+  try {
+    const response = await api.get(`/projects/recent?limit=${limit}`);
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
